@@ -510,7 +510,7 @@ Each application supporting AAI provides `aai.json` in a unified AAI configurati
   "platforms": {
     "macos": {
       "automation": "applescript",
-      "skills": [
+      "tools": [
         {
           "name": "send_email",
           "description": "Send a new email via Apple Mail",
@@ -544,7 +544,7 @@ Each application supporting AAI provides `aai.json` in a unified AAI configurati
     "windows": {
       "automation": "com",
       "progid": "Outlook.Application",
-      "skills": [
+      "tools": [
         {
           "name": "send_email",
           "description": "Send a new email via Microsoft Outlook",
@@ -575,7 +575,7 @@ Each application supporting AAI provides `aai.json` in a unified AAI configurati
       "service": "org.example.Mail",
       "object": "/org/example/Mail",
       "interface": "org.example.Mail",
-      "skills": [
+      "tools": [
         {
           "name": "send_email",
           "description": "Send a new email",
@@ -596,7 +596,7 @@ Each application supporting AAI provides `aai.json` in a unified AAI configurati
     "android": {
       "automation": "intent",
       "package": "com.example.mail",
-      "skills": [
+      "tools": [
         {
           "name": "send_email",
           "description": "Send a new email",
@@ -623,7 +623,7 @@ Each application supporting AAI provides `aai.json` in a unified AAI configurati
     "ios": {
       "automation": "url_scheme",
       "scheme": "mailapp",
-      "skills": [
+      "tools": [
         {
           "name": "send_email",
           "description": "Send a new email",
@@ -664,9 +664,9 @@ Each application supporting AAI provides `aai.json` in a unified AAI configurati
 | Field | Type | Description |
 |-------|------|-------------|
 | `platforms.macos.automation` | string | Automation type: `applescript` or `jxa` |
-| `platforms.macos.skills[].script` | string | Script template, supports `${param}` placeholders |
-| `platforms.macos.skills[].output_parser` | string | Output parsing method: `result as text` (string), `result as record` (dictionary) |
-| `platforms.macos.skills[].timeout` | integer | Timeout in seconds, default 30 |
+| `platforms.macos.tools[].script` | string | Script template, supports `${param}` placeholders |
+| `platforms.macos.tools[].output_parser` | string | Output parsing method: `result as text` (string), `result as record` (dictionary) |
+| `platforms.macos.tools[].timeout` | integer | Timeout in seconds, default 30 |
 
 ##### Windows Specific Fields
 
@@ -674,17 +674,17 @@ Each application supporting AAI provides `aai.json` in a unified AAI configurati
 |-------|------|-------------|
 | `platforms.windows.automation` | string | Automation type: `com` |
 | `platforms.windows.progid` | string | COM ProgID (e.g., `Outlook.Application`) |
-| `platforms.windows.skills[].script` | array | COM operation sequence |
-| `platforms.windows.skills[].script[].action` | string | Operation type: `create` (create object), `call` (call method), `set` (set property), `get` (get property), `return` (return result) |
-| `platforms.windows.skills[].script[].var` | string | Variable name (for storing return values) |
-| `platforms.windows.skills[].script[].object` | string | Object reference (e.g., `mail`, `app`) |
-| `platforms.windows.skills[].script[].progid` | string | ProgID (only used in `create` operations) |
-| `platforms.windows.skills[].script[].method` | string | Method name (only used in `call` operations) |
-| `platforms.windows.skills[].script[].property` | string | Property name (only used in `set`/`get` operations) |
-| `platforms.windows.skills[].script[].value` | string | Property value (supports `${param}` placeholders) |
-| `platforms.windows.skills[].script[].args` | array | Method arguments (supports `${param}` placeholders) |
-| `platforms.windows.skills[].output_parser` | string | Output parsing method: `last_result` (return value of last operation) |
-| `platforms.windows.skills[].timeout` | integer | Timeout in seconds, default 30 |
+| `platforms.windows.tools[].script` | array | COM operation sequence |
+| `platforms.windows.tools[].script[].action` | string | Operation type: `create` (create object), `call` (call method), `set` (set property), `get` (get property), `return` (return result) |
+| `platforms.windows.tools[].script[].var` | string | Variable name (for storing return values) |
+| `platforms.windows.tools[].script[].object` | string | Object reference (e.g., `mail`, `app`) |
+| `platforms.windows.tools[].script[].progid` | string | ProgID (only used in `create` operations) |
+| `platforms.windows.tools[].script[].method` | string | Method name (only used in `call` operations) |
+| `platforms.windows.tools[].script[].property` | string | Property name (only used in `set`/`get` operations) |
+| `platforms.windows.tools[].script[].value` | string | Property value (supports `${param}` placeholders) |
+| `platforms.windows.tools[].script[].args` | array | Method arguments (supports `${param}` placeholders) |
+| `platforms.windows.tools[].output_parser` | string | Output parsing method: `last_result` (return value of last operation) |
+| `platforms.windows.tools[].timeout` | integer | Timeout in seconds, default 30 |
 
 ##### Linux Specific Fields
 
@@ -694,9 +694,9 @@ Each application supporting AAI provides `aai.json` in a unified AAI configurati
 | `platforms.linux.service` | string | DBus service name (e.g., `org.example.Mail`) |
 | `platforms.linux.object` | string | DBus object path (e.g., `/org/example/Mail`) |
 | `platforms.linux.interface` | string | DBus interface name (e.g., `org.example.Mail`) |
-| `platforms.linux.skills[].method` | string | DBus method name (e.g., `SendEmail`) |
-| `platforms.linux.skills[].output_parser` | string | Output parsing method: `json` (assumes JSON return), `string` |
-| `platforms.linux.skills[].timeout` | integer | Timeout in seconds, default 30 |
+| `platforms.linux.tools[].method` | string | DBus method name (e.g., `SendEmail`) |
+| `platforms.linux.tools[].output_parser` | string | Output parsing method: `json` (assumes JSON return), `string` |
+| `platforms.linux.tools[].timeout` | integer | Timeout in seconds, default 30 |
 
 ##### Android Specific Fields
 
@@ -704,11 +704,11 @@ Each application supporting AAI provides `aai.json` in a unified AAI configurati
 |-------|------|-------------|
 | `platforms.android.automation` | string | Automation type: `intent` |
 | `platforms.android.package` | string | Android package name (e.g., `com.example.mail`) |
-| `platforms.android.skills[].action` | string | Intent Action (e.g., `com.example.MAIL_SEND`) |
-| `platforms.android.skills[].extras` | object | Intent Extra parameters (supports `${param}` placeholders) |
-| `platforms.android.skills[].result_type` | string | Result retrieval method: `content_provider` (Content Provider), `broadcast` (broadcast) |
-| `platforms.android.skills[].result_uri` | string | Content Provider URI (only used when `result_type=content_provider`) |
-| `platforms.android.skills[].timeout` | integer | Timeout in milliseconds, default 5000 |
+| `platforms.android.tools[].action` | string | Intent Action (e.g., `com.example.MAIL_SEND`) |
+| `platforms.android.tools[].extras` | object | Intent Extra parameters (supports `${param}` placeholders) |
+| `platforms.android.tools[].result_type` | string | Result retrieval method: `content_provider` (Content Provider), `broadcast` (broadcast) |
+| `platforms.android.tools[].result_uri` | string | Content Provider URI (only used when `result_type=content_provider`) |
+| `platforms.android.tools[].timeout` | integer | Timeout in milliseconds, default 5000 |
 
 ##### iOS Specific Fields
 
@@ -716,10 +716,10 @@ Each application supporting AAI provides `aai.json` in a unified AAI configurati
 |-------|------|-------------|
 | `platforms.ios.automation` | string | Automation type: `url_scheme` |
 | `platforms.ios.scheme` | string | URL Scheme (e.g., `mailapp`) |
-| `platforms.ios.skills[].url_template` | string | URL template (supports `${param}` placeholders) |
-| `platforms.ios.skills[].result_type` | string | Result retrieval method: `app_group` (App Groups), `clipboard` (clipboard) |
-| `platforms.ios.skills[].app_group_id` | string | App Group ID (only used when `result_type=app_group`) |
-| `platforms.ios.skills[].timeout` | integer | Timeout in seconds, default 10 |
+| `platforms.ios.tools[].url_template` | string | URL template (supports `${param}` placeholders) |
+| `platforms.ios.tools[].result_type` | string | Result retrieval method: `app_group` (App Groups), `clipboard` (clipboard) |
+| `platforms.ios.tools[].app_group_id` | string | App Group ID (only used when `result_type=app_group`) |
+| `platforms.ios.tools[].timeout` | integer | Timeout in seconds, default 10 |
 
 ---
 
@@ -782,7 +782,7 @@ AAI implements on-demand loading through the MCP resource model:
       {
         "uri": "app:com.apple.mail",
         "mimeType": "application/json",
-        "text": "{\n  \"schema_version\": \"1.0\",\n  \"appId\": \"com.apple.mail\",\n  \"skills\": [...]\n}"
+        "text": "{\n  \"schema_version\": \"1.0\",\n  \"appId\": \"com.apple.mail\",\n  \"tools\": [...]\n}"
       }
     ]
   }
@@ -822,7 +822,7 @@ AAI implements on-demand loading through the MCP resource model:
 }
 ```
 
-**Advantage:** Only loads an application's skills when the user mentions it, greatly saving context.
+**Advantage:** Only loads an application's tools when the user mentions it, greatly saving context.
 
 ---
 
@@ -851,7 +851,7 @@ Gateway should return standardized error responses:
 |-----------|------|-------------|
 | -32001 | AUTOMATION_FAILED | Automation script execution failed |
 | -32002 | APP_NOT_FOUND | Target application not installed or cannot be found |
-| -32003 | SKILL_NOT_FOUND | Requested skill does not exist in aai.json |
+| -32003 | TOOL_NOT_FOUND | Requested tool does not exist in aai.json |
 | -32004 | PERMISSION_DENIED | Insufficient permissions, requires user authorization |
 | -32005 | INVALID_PARAMS | Parameter validation failed |
 | -32006 | AUTOMATION_NOT_SUPPORTED | Platform does not support specified automation type |
@@ -871,7 +871,7 @@ Gateway should return standardized error responses:
 #### Agent Behavior
 
 1. Call `resources/list` → Discover `app:com.apple.mail`
-2. Call `resources/read(app:com.apple.mail)` → Get `send_email` skill
+2. Call `resources/read(app:com.apple.mail)` → Get `send_email` tool
 3. Construct MCP `tools/call` request
 
 #### Gateway Behavior (macOS Example)
@@ -1081,7 +1081,7 @@ AAI defines the following constraints to ensure protocol simplicity and security
 **Prompt to AI:**
 ```
 Analyze Apple Mail's AppleScript documentation and generate an AAI aai.json description file.
-Need to expose these skills:
+Need to expose these tools:
 - Email sending (send_email): parameters include to, subject, body
 - Email searching (search_emails): parameters include query, limit
 - Mark email as read (mark_as_read): parameters include message_id
@@ -1132,7 +1132,7 @@ Ready to use AAI capabilities
 | Need additional server? | **No**, direct invocation |
 | Need OAuth? | **No**, uses system's native authorization mechanisms |
 | Agent needs custom development? | Zero code, standard MCP is enough |
-| Context too large? | Progressive skill loading |
+| Context too large? | Progressive tool loading |
 | Cross-platform? | Unified abstraction, platform-specific implementation |
 | Slow operation speed? | **Millisecond-level calls** vs seconds for GUI automation |
 | Cannot parallelize? | Supports multi-application parallel operations |
@@ -1144,7 +1144,7 @@ Ready to use AAI capabilities
 ### Current Status
 
 ✅ **Protocol design complete**
-- Defined aai.json schema for describing application skills
+- Defined aai.json schema for describing application tools
 - Based on MCP standards for Agent integration
 - Cross-platform support (macOS, Windows, Linux, Android, iOS)
 
@@ -1156,8 +1156,8 @@ Ready to use AAI capabilities
 
 - [ ] **MCP Server Implementation**
   - [ ] `resources/list` - List all installed AAI applications
-  - [ ] `resources/read` - Read application's aai.json and skill details
-  - [ ] `tools/call` - Call application skills
+  - [ ] `resources/read` - Read application's aai.json and tool details
+  - [ ] `tools/call` - Call application tools
 
 - [ ] **Automation Executors**
   - [ ] **macOS Executor**
@@ -1188,7 +1188,7 @@ Ready to use AAI capabilities
   - [ ] Scan `~/.aai/` directory (cross-platform path adaptation)
   - [ ] Load all `aai.json` files
   - [ ] Schema validation
-  - [ ] Filter skills by platform
+  - [ ] Filter tools by platform
 
 - [ ] **Configuration File Support**
   - [ ] `~/.aai/config.json` - Gateway configuration
@@ -1233,14 +1233,14 @@ Ready to use AAI capabilities
   - [ ] Event subscription and triggering
 
 - [ ] **Batch Operations**
-  - [ ] Support batch skill calls
+  - [ ] Support batch tool calls
   - [ ] Parallel execution optimization
   - [ ] Result aggregation
 
-- [ ] **Enhanced Skill Discovery**
-  - [ ] Intelligent skill recommendation
-  - [ ] Skill usage statistics
-  - [ ] Skill rating system
+- [ ] **Enhanced Tool Discovery**
+  - [ ] Intelligent tool recommendation
+  - [ ] Tool usage statistics
+  - [ ] Tool rating system
 
 ---
 
@@ -1287,7 +1287,7 @@ Ready to use AAI capabilities
 │  3. aai.json Parser                    │
 │     - Schema validation                │
 │     - Script template parameter replacement│
-│     - Platform skill filtering        │
+│     - Platform tool filtering         │
 ├─────────────────────────────────────────┤
 │  4. Error Handling                     │
 │     - Standardized error codes         │
@@ -1349,7 +1349,7 @@ Ready to use AAI capabilities
               "type": "string",
               "enum": ["applescript", "jxa"]
             },
-            "skills": {
+            "tools": {
               "type": "array",
               "items": {
                 "type": "object",
@@ -1359,7 +1359,7 @@ Ready to use AAI capabilities
                   "description": { "type": "string" },
                   "parameters": {
                     "type": "object",
-                    "description": "JSON Schema for skill parameters"
+                    "description": "JSON Schema for tool parameters"
                   },
                   "script": { "type": "string" },
                   "output_parser": { "type": "string" },
@@ -1374,7 +1374,7 @@ Ready to use AAI capabilities
           "properties": {
             "automation": { "type": "string", "enum": ["com"] },
             "progid": { "type": "string" },
-            "skills": {
+            "tools": {
               "type": "array",
               "items": {
                 "type": "object",
@@ -1382,7 +1382,7 @@ Ready to use AAI capabilities
                 "properties": {
                   "name": { "type": "string" },
                   "description": { "type": "string" },
-                  "parameters": { "type": "object", "description": "JSON Schema for skill parameters" },
+                  "parameters": { "type": "object", "description": "JSON Schema for tool parameters" },
                   "script": { "type": "array" },
                   "output_parser": { "type": "string" },
                   "timeout": { "type": "integer" }
@@ -1398,7 +1398,7 @@ Ready to use AAI capabilities
             "service": { "type": "string" },
             "object": { "type": "string" },
             "interface": { "type": "string" },
-            "skills": {
+            "tools": {
               "type": "array",
               "items": {
                 "type": "object",
@@ -1406,7 +1406,7 @@ Ready to use AAI capabilities
                 "properties": {
                   "name": { "type": "string" },
                   "description": { "type": "string" },
-                  "parameters": { "type": "object", "description": "JSON Schema for skill parameters" },
+                  "parameters": { "type": "object", "description": "JSON Schema for tool parameters" },
                   "method": { "type": "string" },
                   "output_parser": { "type": "string" },
                   "timeout": { "type": "integer" }
@@ -1420,7 +1420,7 @@ Ready to use AAI capabilities
           "properties": {
             "automation": { "type": "string", "enum": ["intent"] },
             "package": { "type": "string" },
-            "skills": {
+            "tools": {
               "type": "array",
               "items": {
                 "type": "object",
@@ -1428,7 +1428,7 @@ Ready to use AAI capabilities
                 "properties": {
                   "name": { "type": "string" },
                   "description": { "type": "string" },
-                  "parameters": { "type": "object", "description": "JSON Schema for skill parameters" },
+                  "parameters": { "type": "object", "description": "JSON Schema for tool parameters" },
                   "action": { "type": "string" },
                   "extras": { "type": "object" },
                   "result_type": { "type": "string" },
@@ -1444,7 +1444,7 @@ Ready to use AAI capabilities
           "properties": {
             "automation": { "type": "string", "enum": ["url_scheme"] },
             "scheme": { "type": "string" },
-            "skills": {
+            "tools": {
               "type": "array",
               "items": {
                 "type": "object",
@@ -1452,7 +1452,7 @@ Ready to use AAI capabilities
                 "properties": {
                   "name": { "type": "string" },
                   "description": { "type": "string" },
-                  "parameters": { "type": "object", "description": "JSON Schema for skill parameters" },
+                  "parameters": { "type": "object", "description": "JSON Schema for tool parameters" },
                   "url_template": { "type": "string" },
                   "result_type": { "type": "string" },
                   "app_group_id": { "type": "string" },
