@@ -1,6 +1,6 @@
 # AAI (Agent App Interface)
 
-**AAI** is a protocol that enables AI Agents to interact directly with applications through their native automation interfaces—bypassing the slow, fragile approach of "watching screens and simulating clicks."
+**AAI** is a protocol that enables AI Agents to directly invoke application capabilities—bypassing the slow, fragile approach of "watching screens and simulating clicks."
 
 ---
 
@@ -41,17 +41,15 @@
 │                                                                 │
 │  Agent ↔ Application                                           │
 │    ↓                                                            │
-│  JSON commands                                                 │
+│  Structured commands (JSON)                                     │
 │    ↓                                                            │
-│  Automation tools (AppleScript/COM/DBus)                        │
-│    ↓                                                            │
-│  Native IPC calls                                              │
+│  Direct capability invocation                                   │
 │    ↓                                                            │
 │  Execute business logic                                          │
 │                                                                 │
 │  Features:                                                      │
 │  • Structured interfaces designed for Agents                    │
-│  • Direct calls, no visual recognition needed                  │
+│  • Direct invocation, no visual recognition needed             │
 │  • Supports parallel and batch operations                       │
 │  • Human and Agent access independently                        │
 │                                                                 │
@@ -60,11 +58,11 @@
 
 ### The Call of the Times: Agents are Reshaping Productivity
 
-In 2026, AI Agents like **OpenClaw** and **Cowork** (Anthropic) are changing how we interact with the digital world. These Agents are becoming increasingly powerful, capable of understanding complex tasks, planning execution steps, and coordinating multiple workflows.
+AI Agents are becoming increasingly powerful—capable of understanding complex tasks, planning execution steps, and coordinating multiple workflows.
 
 But the reality is: **when Agents need to operate actual applications to complete work, they are still forced to "watch screens and click buttons" like humans.**
 
-This "human simulation" approach feels out of place in the Agent era—like continuing to use steam engines to drive belt conveyors in the age of electricity. We have a more efficient way.
+This "human simulation" approach feels out of place in the Agent era. We have a more efficient way.
 
 ---
 
@@ -72,22 +70,20 @@ This "human simulation" approach feels out of place in the Agent era—like cont
 
 #### Current Automation Tools
 
-| MCP Tool | Purpose | Working Principle | Operation Flow |
-|-----------|---------|------------------|----------------|
-| **Playwright MCP** | Browser automation | Connect directly to browser via CDP | Screen capture → Image processing → OCR recognition → Element positioning → Simulate clicks |
-| **Chrome DevTools MCP** | Chrome automation | WebSocket+JSON-RPC protocol | Screen recognition → Position coordinates → Simulate operations |
-| **Open Interpreter** | Computer control | Screenshots + visual recognition | Interface recognition → GUI interaction |
-| **Cursor / Continue** | AI programming assistant | Hybrid methods | Recognize interface elements → Simulate user input |
+| Tool Type | Example | Working Principle |
+|-----------|---------|------------------|
+| **Browser Automation** | Playwright MCP, Chrome DevTools MCP | DOM selectors or visual recognition → Simulate clicks/input |
+| **Desktop Automation** | Open Interpreter, Computer Use | Screenshots + visual recognition → GUI interaction |
 
-**Core Problem: These tools essentially "let Agents simulate human GUI operations."**
+**Core Problem: These tools still operate through the GUI layer, simulating human interactions rather than directly invoking application capabilities.**
 
 #### Fundamental Limitations
 
-| Limitation | Description | Impact |
-|-----------|-------------|--------|
-| **Slow: 20-100x difference** | Screen OCR process: capture(100ms) + processing(200ms) + OCR recognition(2000-4000ms) = **~2-4 seconds**; while direct IPC call: **~1-10ms** | Agents wait for second-level responses, significantly degrading user experience |
-| **Cannot truly parallelize** | Desktop can only activate one window at a time, focus switching takes 500-1000ms | Agents cannot coordinate multiple applications simultaneously, serial execution is inefficient |
-| **Fragile and unstable** | Relies on visual recognition, UI adjustments, popups, font changes all cause failures | Agents need to constantly retry, reliability cannot be guaranteed |
+| Limitation | Description |
+|-----------|-------------|
+| **Slow** | GUI automation (screenshot + recognition + action) takes seconds; direct capability invocation takes milliseconds |
+| **Cannot parallelize** | Desktop focus limitations prevent coordinating multiple applications simultaneously |
+| **Fragile** | UI changes, popups, resolution differences, and font changes break automation |
 
 ---
 
@@ -121,8 +117,8 @@ Future applications shouldn't just be for humans. They should provide **two inde
 ```
 
 **Key Insight:**
-- **UI (User Interface):** Serves humans, focuses on visual experience, intuitive operation, instant feedback
-- **API (Agent Interface):** Serves Agents, focuses on structure, discoverability, programmability
+- **GUI (Graphical User Interface):** Serves humans, focuses on visual experience, intuitive operation, instant feedback
+- **AAI (Agent App Interface):** Serves Agents, focuses on structure, discoverability, programmability
 
 The two **do not interfere** with each other, but access the same core functionality layer.
 
@@ -140,13 +136,7 @@ The two **do not interfere** with each other, but access the same core functiona
 
 ### Industry Trends: Agent-Native Design
 
-#### Consensus of 2026
-
-> **"If websites still cannot clearly communicate with AI Agents, they are essentially invisible to AI search engines like ChatGPT, Claude, and Gemini."**
-> — Prerender.io, "How to Build Agent-Friendly Websites"
-
-> **"AI Agents are becoming the primary interface for business logic...93% of companies believe automation is the key driver of digital transformation."**
-> — Monday AI Agent Report
+AI Agents like **OpenClaw** and **Claude Cowork** (Anthropic) are changing how we interact with the digital world. These Agents are becoming increasingly powerful, capable of understanding complex tasks, planning execution steps, and coordinating multiple workflows.
 
 **Major Platforms Are Already Taking Action:**
 
@@ -157,15 +147,15 @@ The two **do not interfere** with each other, but access the same core functiona
 | **Stripe** | Agentic Checkout | ACP |
 | **Notion/Figma** | API-first architecture | OpenAPI/MCP |
 | **Google** | A2UI (Agent-to-User Interface) | A2UI |
+| **CopilotKit** | AG-UI (Agent-User Interaction Protocol) | AG-UI |
 
-#### Google A2UI Protocol
+#### Related Protocols
 
-In 2025, Google released the **A2UI Protocol**, defining how Agents dynamically generate context-aware interfaces:
-- **Agent generates UI components:** Creates forms, previews, control panels based on conversation context
-- **Beyond static chat:** Not just dialog boxes, but fully functional interfaces
-- **Context-aware:** Interfaces automatically adjust based on current tasks
+**AG-UI (Agent-User Interaction Protocol):** An open, lightweight, event-based protocol that standardizes how agents connect to user-facing applications. It provides real-time streaming, state management, and interactive UI components for agentic experiences.
 
-This proves: **Agents don't need "better chat", but "standardized interfaces for direct access to application capabilities".**
+**A2UI (Google):** A generative UI specification that agents can use to deliver UI widgets dynamically based on conversation context.
+
+**The key insight:** Agents don't need "better chat"—they need **standardized interfaces for direct access to application capabilities.**
 
 ---
 
@@ -174,13 +164,13 @@ This proves: **Agents don't need "better chat", but "standardized interfaces for
 #### Comparison of Approaches
 
 ```
-Traditional Approach (via MCP tools):
-Agent → [Playwright/Chrome DevTools MCP] → [Screen OCR/recognition] → [Simulate clicks] → GUI → Application
-  ↑ 2-4 seconds per operation                ↑ Cannot cross-application parallelize
+Traditional Approach (GUI-based):
+Agent → [Screen capture/recognition] → [Simulate clicks] → GUI → Application
+       (seconds per operation, cannot parallelize across apps)
 
 AAI Approach:
-Agent → [AAI Gateway] → [MCP JSON-RPC] → [Native Automation IPC] → Application
-  ↑ Microsecond-level response              ↑ Supports multi-application parallelization
+Agent → [AAI Gateway] → [Direct invocation] → Application
+       (milliseconds per operation, supports parallelization)
 ```
 
 #### AAI's Positioning
@@ -298,13 +288,13 @@ AAI (Agent App Interface) is a protocol based on MCP standards that defines how 
 
 AAI uses **mainstream automation tools and their native IPC methods** on each platform to ensure best compatibility and performance.
 
-| Platform | Automation Tool | IPC Method | Compatibility | App Development Cost |
-|----------|----------------|-----------|--------------|---------------------|
-| **macOS** | AppleScript / JXA | AppleEvents | ✅ All macOS apps | **Zero code** (existing automation) |
-| **Windows** | COM Automation | COM IPC | ✅ Most Windows apps | **Zero code** (existing automation) |
-| **Linux** | DBus | DBus IPC | ✅ Desktop apps | **Zero code** (existing automation) |
-| **Android** | Intent | Binder IPC | ✅ All Android apps | **Zero code** (native mechanism) |
-| **iOS** | URL Scheme | iOS IPC | ✅ All iOS apps | **Zero code** (native mechanism) |
+| Platform | Automation Mechanism | Integration Cost |
+|----------|---------------------|------------------|
+| **macOS** | AppleScript / JXA | Zero code if app already supports AppleScript |
+| **Windows** | COM Automation | Zero code if app already exposes COM interface |
+| **Linux** | DBus | Zero code if app already exposes DBus interface |
+| **Android** | Intent | Requires Intent handler implementation |
+| **iOS** | URL Scheme | Requires URL Scheme handler implementation |
 
 #### 2.3.1 macOS: AppleScript / JXA
 
@@ -330,10 +320,13 @@ end tell
 **Example (JXA):**
 ```javascript
 const Mail = Application('Mail');
+Mail.activate();
 const msg = Mail.OutgoingMessage({
   subject: 'Hello',
-  content: 'Hi Alice...'
+  content: 'Hi Alice...',
+  visible: false
 });
+Mail.outgoingMessages.push(msg);
 msg.toRecipients.push(Mail.Recipient({address: 'alice@example.com'}));
 msg.send();
 ```
@@ -521,12 +514,28 @@ Each application supporting AAI provides `aai.json` in a unified AAI configurati
         {
           "name": "send_email",
           "description": "Send a new email via Apple Mail",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "to": { "type": "string", "description": "Recipient email address" },
+              "subject": { "type": "string", "description": "Email subject" },
+              "body": { "type": "string", "description": "Email body content" }
+            },
+            "required": ["to", "subject", "body"]
+          },
           "script": "tell application \"Mail\"\n  set newMessage to make new outgoing message with properties {subject:\"${subject}\", content:\"${body}\", visible:false}\n  tell newMessage\n    make new to recipient at beginning of to recipients with properties {address:\"${to}\"}\n    send\n  end tell\nend tell\nreturn \"{\\\"success\\\":true, \\\"message_id\\\":\\\"generated\\\"}\"",
           "output_parser": "result as text"
         },
         {
           "name": "search_emails",
           "description": "Search emails in mailbox",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "query": { "type": "string", "description": "Search query string" }
+            },
+            "required": ["query"]
+          },
           "script": "tell application \"Mail\"\n  set results to (messages whose subject contains \"${query}\")\nend tell\nreturn \"{\\\"emails\\\":[\\\"result1\\\", \\\"result2\\\"]}\"",
           "output_parser": "result as text"
         }
@@ -539,6 +548,15 @@ Each application supporting AAI provides `aai.json` in a unified AAI configurati
         {
           "name": "send_email",
           "description": "Send a new email via Microsoft Outlook",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "to": { "type": "string", "description": "Recipient email address" },
+              "subject": { "type": "string", "description": "Email subject" },
+              "body": { "type": "string", "description": "Email body content" }
+            },
+            "required": ["to", "subject", "body"]
+          },
           "script": [
             {"action": "create", "var": "app", "progid": "Outlook.Application"},
             {"action": "call", "var": "mail", "object": "app", "method": "CreateItem", "args": [0]},
@@ -561,6 +579,15 @@ Each application supporting AAI provides `aai.json` in a unified AAI configurati
         {
           "name": "send_email",
           "description": "Send a new email",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "to": { "type": "string", "description": "Recipient email address" },
+              "subject": { "type": "string", "description": "Email subject" },
+              "body": { "type": "string", "description": "Email body content" }
+            },
+            "required": ["to", "subject", "body"]
+          },
           "method": "SendEmail",
           "output_parser": "json"
         }
@@ -573,6 +600,15 @@ Each application supporting AAI provides `aai.json` in a unified AAI configurati
         {
           "name": "send_email",
           "description": "Send a new email",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "to": { "type": "string", "description": "Recipient email address" },
+              "subject": { "type": "string", "description": "Email subject" },
+              "body": { "type": "string", "description": "Email body content" }
+            },
+            "required": ["to", "subject", "body"]
+          },
           "action": "com.example.MAIL_SEND",
           "extras": {
             "to": "${to}",
@@ -591,6 +627,15 @@ Each application supporting AAI provides `aai.json` in a unified AAI configurati
         {
           "name": "send_email",
           "description": "Send a new email",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "to": { "type": "string", "description": "Recipient email address" },
+              "subject": { "type": "string", "description": "Email subject" },
+              "body": { "type": "string", "description": "Email body content" }
+            },
+            "required": ["to", "subject", "body"]
+          },
           "url_template": "mailapp://send?to=${to}&subject=${subject}&body=${body}",
           "result_type": "app_group",
           "app_group_id": "group.com.example.mail"
@@ -1083,33 +1128,31 @@ Ready to use AAI capabilities
 
 | Issue | AAI Solution |
 |-------|--------------|
-| High app integration cost? | Most applications require **zero code** (existing automation) |
-| Need additional server? | **No**, uses platform-native automation |
+| High app integration cost? | Apps only need to provide `aai.json` descriptor |
+| Need additional server? | **No**, direct invocation |
 | Need OAuth? | **No**, uses system's native authorization mechanisms |
 | Agent needs custom development? | Zero code, standard MCP is enough |
 | Context too large? | Progressive skill loading |
 | Cross-platform? | Unified abstraction, platform-specific implementation |
-| Slow operation speed? | **Microsecond-level calls**, 1000x faster than OCR |
+| Slow operation speed? | **Millisecond-level calls** vs seconds for GUI automation |
 | Cannot parallelize? | Supports multi-application parallel operations |
-| Compatible with existing apps? | ✅ Leverages application's existing automation capabilities |
 
 ---
 
 ## Part III: Roadmap
 
-### Current Status (Initial Version)
+### Current Status
 
 ✅ **Protocol design complete**
-- Defined communication standard based on platform-native automation
-- Supports all major operating systems (macOS, Windows, Linux, Android, iOS)
-- Defined aai.json Schema (initial version)
-- Leverages existing automation capabilities, zero-code compatible with existing applications
+- Defined aai.json schema for describing application skills
+- Based on MCP standards for Agent integration
+- Cross-platform support (macOS, Windows, Linux, Android, iOS)
 
-🚧 **Features to implement**
+🚧 **Implementation in progress**
 
-### Phase 1: AAI Gateway MCP Development (Current Priority)
+### TODO: AAI Gateway Development
 
-#### 1.1 Core Features
+#### Core Features
 
 - [ ] **MCP Server Implementation**
   - [ ] `resources/list` - List all installed AAI applications
@@ -1139,7 +1182,7 @@ Ready to use AAI capabilities
     - [ ] URL Scheme invocation
     - [ ] App Groups result reading
 
-#### 1.2 Configuration Management
+#### Configuration Management
 
 - [ ] **Application Auto-Discovery**
   - [ ] Scan `~/.aai/` directory (cross-platform path adaptation)
@@ -1152,7 +1195,7 @@ Ready to use AAI capabilities
   - [ ] Support custom scan paths
   - [ ] Support timeout time configuration
 
-#### 1.3 Error Handling and Logging
+#### Error Handling and Logging
 
 - [ ] **Standardized Error Handling**
   - [ ] Error code mapping
@@ -1164,16 +1207,7 @@ Ready to use AAI capabilities
   - [ ] Error log recording
   - [ ] Log level control
 
-### Phase 2: Agent-Native App Store
-
-#### 2.1 Core Concept
-
-**Agent-Native App:**
-- Applications designed specifically for Agents, providing standardized automation interfaces
-- Can be published and discovered in the AAI App Store
-- Agents can call them directly without any simulation or visual recognition
-
-#### 2.2 App Store Features
+### TODO: Phase 2 - Agent-Native App Store
 
 - [ ] **Web App Store**
   - [ ] Application showcase pages (name, description, author, rating)
@@ -1191,90 +1225,7 @@ Ready to use AAI capabilities
   - [ ] Agent prompts for installation when discovering uninstalled applications
   - [ ] Support "on-demand installation" mode
 
-#### 2.3 App Store API
-
-```json
-// Application List API
-GET https://store.aai.dev/api/apps
-
-{
-  "apps": [
-    {
-      "id": "com.example.taskmanager",
-      "name": "Task Manager Pro",
-      "description": "AI-native task management app",
-      "author": "Example Inc.",
-      "version": "2.1.0",
-      "rating": 4.8,
-      "downloads": 10245,
-      "platforms": ["macos", "windows", "linux"],
-      "aai_url": "https://store.aai.dev/apps/com.example.taskmanager/aai.json"
-    }
-  ]
-}
-```
-
-#### 2.4 Agent On-Demand Installation Experience
-
-**Scenario: Agent discovers user needs an uninstalled application**
-
-```
-User: "Help me create a task due next Monday named 'Complete Project Report'"
-
-Agent → Gateway: tools/call({name: "com.example.taskmanager:create_task"})
-
-Gateway checks:
-  - aai.json for application "com.example.taskmanager" not found
-
-Gateway → Agent (MCP Response):
-{
-  "error": {
-    "code": -32002,
-    "message": "App not found",
-    "data": {
-      "app_id": "com.example.taskmanager",
-      "app_name": "Task Manager Pro",
-      "suggestion": "This app is available in AAI App Store. Install it?",
-      "install_command": "aai-gateway install com.example.taskmanager"
-    }
-  }
-}
-
-Agent → User:
-"To complete this task, I need to use Task Manager Pro application.
-This application supports creating tasks, setting due dates, etc.
-
-Application Name: Task Manager Pro
-Author: Example Inc.
-Rating: 4.8/5.0
-Supported Platforms: macOS, Windows, Linux
-
-Do you want to install this application? After installation, I can help you create the task."
-
-User: "Yes, install"
-
-Gateway:
-  1. Downloads aai.json from app store
-  2. Places in ~/.aai/com.example.taskmanager/aai.json
-  3. Auto-registers in Gateway
-
-Agent → Gateway: tools/call({name: "com.example.taskmanager:create_task"})
-
-Gateway:
-  1. Calls application automation
-  2. Successfully creates task
-
-Agent → User:
-"Task created successfully!
-
-Task Name: Complete Project Report
-Due Date: Next Monday
-Status: Pending
-
-Application installed and authorized."
-```
-
-### Phase 3: Advanced Features (Future Planning)
+### TODO: Phase 3 - Advanced Features
 
 - [ ] **Workflow Orchestration**
   - [ ] Support cross-application workflows
@@ -1402,10 +1353,14 @@ Application installed and authorized."
               "type": "array",
               "items": {
                 "type": "object",
-                "required": ["name", "description", "script"],
+                "required": ["name", "description", "parameters", "script"],
                 "properties": {
                   "name": { "type": "string" },
                   "description": { "type": "string" },
+                  "parameters": {
+                    "type": "object",
+                    "description": "JSON Schema for skill parameters"
+                  },
                   "script": { "type": "string" },
                   "output_parser": { "type": "string" },
                   "timeout": { "type": "integer" }
@@ -1423,10 +1378,11 @@ Application installed and authorized."
               "type": "array",
               "items": {
                 "type": "object",
-                "required": ["name", "description", "script"],
+                "required": ["name", "description", "parameters", "script"],
                 "properties": {
                   "name": { "type": "string" },
                   "description": { "type": "string" },
+                  "parameters": { "type": "object", "description": "JSON Schema for skill parameters" },
                   "script": { "type": "array" },
                   "output_parser": { "type": "string" },
                   "timeout": { "type": "integer" }
@@ -1446,10 +1402,11 @@ Application installed and authorized."
               "type": "array",
               "items": {
                 "type": "object",
-                "required": ["name", "description", "method"],
+                "required": ["name", "description", "parameters", "method"],
                 "properties": {
                   "name": { "type": "string" },
                   "description": { "type": "string" },
+                  "parameters": { "type": "object", "description": "JSON Schema for skill parameters" },
                   "method": { "type": "string" },
                   "output_parser": { "type": "string" },
                   "timeout": { "type": "integer" }
@@ -1467,10 +1424,11 @@ Application installed and authorized."
               "type": "array",
               "items": {
                 "type": "object",
-                "required": ["name", "description", "action"],
+                "required": ["name", "description", "parameters", "action"],
                 "properties": {
                   "name": { "type": "string" },
                   "description": { "type": "string" },
+                  "parameters": { "type": "object", "description": "JSON Schema for skill parameters" },
                   "action": { "type": "string" },
                   "extras": { "type": "object" },
                   "result_type": { "type": "string" },
@@ -1490,10 +1448,11 @@ Application installed and authorized."
               "type": "array",
               "items": {
                 "type": "object",
-                "required": ["name", "description", "url_template"],
+                "required": ["name", "description", "parameters", "url_template"],
                 "properties": {
                   "name": { "type": "string" },
                   "description": { "type": "string" },
+                  "parameters": { "type": "object", "description": "JSON Schema for skill parameters" },
                   "url_template": { "type": "string" },
                   "result_type": { "type": "string" },
                   "app_group_id": { "type": "string" },
@@ -1513,19 +1472,11 @@ Application installed and authorized."
 
 ## Appendix D: Quick Start Guide
 
-### 1. Install AAI Gateway
+> **Note:** AAI Gateway is currently under development. The following describes the intended usage flow.
 
-```bash
-# macOS / Linux
-curl -fsSL https://get.aai.dev/install.sh | sh
+### 1. Configure Agent
 
-# Windows
-# Download installer from https://github.com/your-org/aai-gateway/releases
-```
-
-### 2. Configure Agent (Take Continue.dev as Example)
-
-Edit `~/.continue/config.ts`:
+Add AAI Gateway to your Agent's MCP configuration (e.g., Continue.dev `~/.continue/config.ts`):
 
 ```typescript
 mcpServers: {
@@ -1536,41 +1487,26 @@ mcpServers: {
 }
 ```
 
-### 3. Add AAI Application
+### 2. Add Application Descriptor
 
-**Add support for existing applications:**
+Create an `aai.json` file for your target application:
+
 ```bash
-# Create application directory
 mkdir -p ~/.aai/com.apple.mail
-
-# Download or write aai.json
-curl -o ~/.aai/com.apple.mail/aai.json \
-  https://store.aai.dev/apps/com.apple.mail/aai.json
-
-# Or manually write aai.json (see Section 2.5)
+# Write aai.json (see Section 2.5 for schema)
 ```
 
-### 4. Start Gateway
+### 3. Usage
 
-```bash
-aai-gateway --mcp
-```
-
-### 5. Usage
-
-In Agent, enter:
+In your Agent, request actions like:
 > "Send an email to alice@example.com with subject 'Hello' using Mail"
 
-On first use, the operating system will show an authorization dialog, click [OK] to proceed.
+On first use, the operating system will show an authorization dialog.
 
 ---
 
-**AAI: From GUI to AAI—Let Agents No Longer Simulate Humans, But Execute Directly.**
+**AAI: Let Agents directly invoke application capabilities instead of simulating human GUI operations.**
 
 ---
 
-**From GUI to AAI: A New Paradigm for Application-Agent Interaction—The Inevitable Evolution of the Agent Era.**
-
----
-
-*License: This protocol uses CC BY-SA 4.0, welcome to use and improve freely.*
+*License: CC BY-SA 4.0*
