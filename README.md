@@ -1154,41 +1154,24 @@ Ready to use AAI capabilities
 
 #### Core Features
 
-- [ ] **MCP Server Implementation**
-  - [ ] `resources/list` - List all installed AAI applications
-  - [ ] `resources/read` - Read application's aai.json and tool details
-  - [ ] `tools/call` - Call application tools
+- [ ] **MCP Server Implementation** (resources/list, resources/read, tools/call)
 
 - [ ] **Automation Executors**
-  - [ ] **macOS Executor**
-    - [ ] AppleScript executor (`osascript`)
-    - [ ] JXA executor (`osascript -l JavaScript`)
-    - [ ] Script template parameter replacement
-    - [ ] Output parsing (string/dictionary/JSON)
-    - [ ] TCC error handling and retry
-  - [ ] **Windows Executor**
-    - [ ] COM object creation and invocation
-    - [ ] Script sequence execution (create/call/set/get/return)
-    - [ ] Parameter replacement
-    - [ ] Output parsing
-    - [ ] UAC error handling
-  - [ ] **Linux Executor**
-    - [ ] DBus method invocation
-    - [ ] Output parsing
-  - [ ] **Android Executor**
-    - [ ] Intent sending
-    - [ ] Content Provider result reading
-  - [ ] **iOS Executor**
-    - [ ] URL Scheme invocation
-    - [ ] App Groups result reading
+  - [ ] macOS (AppleScript/JXA executor, parameter replacement, output parsing)
+  - [ ] Windows (COM object creation, script execution, UAC handling)
+  - [ ] Linux (DBus method invocation)
+  - [ ] Android (Intent sending, Content Provider results)
+  - [ ] iOS (URL Scheme invocation, App Groups results)
 
 #### Configuration Management
 
-- [ ] **Application Auto-Discovery**
-  - [ ] Scan `~/.aai/` directory (cross-platform path adaptation)
-  - [ ] Load all `aai.json` files
-  - [ ] Schema validation
-  - [ ] Filter tools by platform
+- [ ] **Application Discovery and Auto-Generation**
+  - [ ] Scan `~/.aai/` directory and load existing `aai.json` files
+  - [ ] Auto-discover system apps with automation support (macOS AppleScript/JXA, Windows COM, Linux DBus)
+  - [ ] Generate `aai.json` automatically from app automation interfaces
+  - [ ] AI-powered descriptor generation for discovered apps
+  - [ ] Scheduled periodic scanning (configurable interval)
+  - [ ] Manual scan trigger (CLI/Web UI)
 
 - [ ] **Configuration File Support**
   - [ ] `~/.aai/config.json` - Gateway configuration
@@ -1197,50 +1180,27 @@ Ready to use AAI capabilities
 
 #### Error Handling and Logging
 
-- [ ] **Standardized Error Handling**
-  - [ ] Error code mapping
-  - [ ] Friendly error messages
-  - [ ] Automatic retry mechanism
+- [ ] Standardized error handling (error codes, retry mechanism)
+- [ ] Logging system (operation/error logs, log level control)
 
-- [ ] **Logging System**
-  - [ ] Operation log recording
-  - [ ] Error log recording
-  - [ ] Log level control
+#### Web UI (HTTP Interface)
+
+- [ ] HTTP server on same port as MCP server with `/ui` endpoint
+- [ ] Configuration management (view/edit settings, scan paths, timeouts)
+- [ ] App management (list/view/add/remove applications and aai.json)
+- [ ] Call history viewer (filter by app/tool/time, show request/response details)
 
 ### TODO: Phase 2 - Agent-Native App Store
 
-- [ ] **Web App Store**
-  - [ ] Application showcase pages (name, description, author, rating)
-  - [ ] Search and category browsing
-  - [ ] User reviews and rating system
-  - [ ] Application version management
-
-- [ ] **Application Installation**
-  - [ ] One-click installation (download aai.json)
-  - [ ] Automatic configuration (place in correct directory)
-  - [ ] Auto-register in Gateway after installation
-
-- [ ] **Agent Integration**
-  - [ ] Gateway can search app store
-  - [ ] Agent prompts for installation when discovering uninstalled applications
-  - [ ] Support "on-demand installation" mode
+- [ ] **Web App Store** (application showcase, search, reviews, ratings, version management)
+- [ ] **Application Installation** (one-click install, auto-config, auto-registration)
+- [ ] **Agent Integration** (store search, installation prompts, on-demand install mode)
 
 ### TODO: Phase 3 - Advanced Features
 
-- [ ] **Workflow Orchestration**
-  - [ ] Support cross-application workflows
-  - [ ] Transactional operations (supports rollback)
-  - [ ] Event subscription and triggering
-
-- [ ] **Batch Operations**
-  - [ ] Support batch tool calls
-  - [ ] Parallel execution optimization
-  - [ ] Result aggregation
-
-- [ ] **Enhanced Tool Discovery**
-  - [ ] Intelligent tool recommendation
-  - [ ] Tool usage statistics
-  - [ ] Tool rating system
+- [ ] **Workflow Orchestration** (cross-app workflows, transactions, rollback, events)
+- [ ] **Batch Operations** (batch tool calls, parallel execution, result aggregation)
+- [ ] **Enhanced Tool Discovery** (smart recommendation, usage stats, rating system)
 
 ---
 
