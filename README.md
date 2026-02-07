@@ -70,20 +70,20 @@ This "human simulation" approach feels out of place in the Agent era. We have a 
 
 #### Current Automation Tools
 
-| Tool Type | Example | Working Principle |
-|-----------|---------|------------------|
+| Tool Type              | Example                             | Working Principle                                           |
+| ---------------------- | ----------------------------------- | ----------------------------------------------------------- |
 | **Browser Automation** | Playwright MCP, Chrome DevTools MCP | DOM selectors or visual recognition → Simulate clicks/input |
-| **Desktop Automation** | Open Interpreter, Computer Use | Screenshots + visual recognition → GUI interaction |
+| **Desktop Automation** | Open Interpreter, Computer Use      | Screenshots + visual recognition → GUI interaction          |
 
 **Core Problem: These tools still operate through the GUI layer, simulating human interactions rather than directly invoking application capabilities.**
 
 #### Fundamental Limitations
 
-| Limitation | Description |
-|-----------|-------------|
-| **Slow** | GUI automation (screenshot + recognition + action) takes seconds; direct capability invocation takes milliseconds |
-| **Cannot parallelize** | Desktop focus limitations prevent coordinating multiple applications simultaneously |
-| **Fragile** | UI changes, popups, resolution differences, and font changes break automation |
+| Limitation             | Description                                                                                                       |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| **Slow**               | GUI automation (screenshot + recognition + action) takes seconds; direct capability invocation takes milliseconds |
+| **Cannot parallelize** | Desktop focus limitations prevent coordinating multiple applications simultaneously                               |
+| **Fragile**            | UI changes, popups, resolution differences, and font changes break automation                                     |
 
 ---
 
@@ -117,6 +117,7 @@ Future applications shouldn't just be for humans. They should provide **two inde
 ```
 
 **Key Insight:**
+
 - **GUI (Graphical User Interface):** Serves humans, focuses on visual experience, intuitive operation, instant feedback
 - **AAI (Agent App Interface):** Serves Agents, focuses on structure, discoverability, programmability
 
@@ -124,13 +125,13 @@ The two **do not interfere** with each other, but access the same core functiona
 
 #### Why is this Important?
 
-| Dimension | Traditional Application (GUI Only) | Dual Interface Application (GUI + AAI) |
-|-----------|----------------------------------|---------------------------------------|
-| **Developer Experience** | Can only test via GUI, difficult to automate | Agents can connect directly via IPC, simple testing |
-| **Agent Efficiency** | OCR recognition 2-4 seconds, cannot parallelize | IPC calls 1-10ms, supports parallelization |
-| **Maintenance Cost** | UI changes require updating Agent scripts | IPC interface stable, Agents have zero adaptation cost |
-| **Scalability** | Limited by desktop focus issues | Multiple Agents can concurrently call the same App |
-| **Future-Ready** | Difficult to integrate with AI | Natively supports AI workflows |
+| Dimension                | Traditional Application (GUI Only)              | Dual Interface Application (GUI + AAI)                 |
+| ------------------------ | ----------------------------------------------- | ------------------------------------------------------ |
+| **Developer Experience** | Can only test via GUI, difficult to automate    | Agents can connect directly via IPC, simple testing    |
+| **Agent Efficiency**     | OCR recognition 2-4 seconds, cannot parallelize | IPC calls 1-10ms, supports parallelization             |
+| **Maintenance Cost**     | UI changes require updating Agent scripts       | IPC interface stable, Agents have zero adaptation cost |
+| **Scalability**          | Limited by desktop focus issues                 | Multiple Agents can concurrently call the same App     |
+| **Future-Ready**         | Difficult to integrate with AI                  | Natively supports AI workflows                         |
 
 ---
 
@@ -140,14 +141,14 @@ AI Agents like **OpenClaw** and **Claude Cowork** (Anthropic) are changing how w
 
 **Major Platforms Are Already Taking Action:**
 
-| Platform | Agent-Native Capabilities | Protocol |
-|----------|-------------------------|----------|
-| **Salesforce** | AgentForce, ACP (Agentic Commerce Protocol) | ACP |
-| **Slack** | Built-in Agent integration | Proprietary protocol |
-| **Stripe** | Agentic Checkout | ACP |
-| **Notion/Figma** | API-first architecture | OpenAPI/MCP |
-| **Google** | A2UI (Agent-to-User Interface) | A2UI |
-| **CopilotKit** | AG-UI (Agent-User Interaction Protocol) | AG-UI |
+| Platform         | Agent-Native Capabilities                   | Protocol             |
+| ---------------- | ------------------------------------------- | -------------------- |
+| **Salesforce**   | AgentForce, ACP (Agentic Commerce Protocol) | ACP                  |
+| **Slack**        | Built-in Agent integration                  | Proprietary protocol |
+| **Stripe**       | Agentic Checkout                            | ACP                  |
+| **Notion/Figma** | API-first architecture                      | OpenAPI/MCP          |
+| **Google**       | A2UI (Agent-to-User Interface)              | A2UI                 |
+| **CopilotKit**   | AG-UI (Agent-User Interaction Protocol)     | AG-UI                |
 
 #### Related Protocols
 
@@ -203,14 +204,14 @@ AAI (Agent App Interface) is a protocol based on MCP standards that defines how 
 
 #### Core Design Principles
 
-| Principle | Description |
-|-----------|-------------|
-| **Standardization** | Unified application interface description format (aai.json) |
-| **Platform Native** | Uses mainstream automation tools and their supported IPC methods on each platform |
-| **Zero Intrusion** | Leverages application's existing automation capabilities, no core code modification needed |
-| **Low Barrier to Entry** | Compatible with existing applications, new applications only need to provide aai.json |
-| **Security Compliant** | Reuses operating system's native authorization mechanisms |
-| **Agent Zero Intrusion** | Integrates via standard MCP, compatible with all Agent frameworks that support MCP |
+| Principle                | Description                                                                                |
+| ------------------------ | ------------------------------------------------------------------------------------------ |
+| **Standardization**      | Unified application interface description format (aai.json)                                |
+| **Platform Native**      | Uses mainstream automation tools and their supported IPC methods on each platform          |
+| **Zero Intrusion**       | Leverages application's existing automation capabilities, no core code modification needed |
+| **Low Barrier to Entry** | Compatible with existing applications, new applications only need to provide aai.json      |
+| **Security Compliant**   | Reuses operating system's native authorization mechanisms                                  |
+| **Agent Zero Intrusion** | Integrates via standard MCP, compatible with all Agent frameworks that support MCP         |
 
 ---
 
@@ -269,11 +270,11 @@ AAI (Agent App Interface) is a protocol based on MCP standards that defines how 
 
 #### Component Responsibilities
 
-| Component | Responsibilities | Implementation Requirements |
-|-----------|----------------|-------------------------|
-| **Agent** (Cursor, Continue, LM Studio) | Initiates operation requests | Supports MCP over stdio |
-| **AAI Gateway** | Translates MCP requests → calls target App | Long-running service process, supports `--mcp` mode |
-| **Target App** (Mail, Outlook, Calendar) | Executes specific operations | Supports platform-native automation + provides `aai.json` |
+| Component                                | Responsibilities                           | Implementation Requirements                               |
+| ---------------------------------------- | ------------------------------------------ | --------------------------------------------------------- |
+| **Agent** (Cursor, Continue, LM Studio)  | Initiates operation requests               | Supports MCP over stdio                                   |
+| **AAI Gateway**                          | Translates MCP requests → calls target App | Long-running service process, supports `--mcp` mode       |
+| **Target App** (Mail, Outlook, Calendar) | Executes specific operations               | Supports platform-native automation + provides `aai.json` |
 
 #### Key Principles
 
@@ -288,13 +289,11 @@ AAI (Agent App Interface) is a protocol based on MCP standards that defines how 
 
 AAI uses **mainstream automation tools and their native IPC methods** on each platform to ensure best compatibility and performance.
 
-| Platform | Automation Mechanism | Integration Cost |
-|----------|---------------------|------------------|
-| **macOS** | AppleScript / JXA | Zero code if app already supports AppleScript |
-| **Windows** | COM Automation | Zero code if app already exposes COM interface |
-| **Linux** | DBus | Zero code if app already exposes DBus interface |
-| **Android** | Intent | Requires Intent handler implementation |
-| **iOS** | URL Scheme | Requires URL Scheme handler implementation |
+| Platform    | Automation Mechanism | Integration Cost                                |
+| ----------- | -------------------- | ----------------------------------------------- |
+| **macOS**   | AppleScript / JXA    | Zero code if app already supports AppleScript   |
+| **Windows** | COM Automation       | Zero code if app already exposes COM interface  |
+| **Linux**   | DBus                 | Zero code if app already exposes DBus interface |
 
 #### 2.3.1 macOS: AppleScript / JXA
 
@@ -303,10 +302,12 @@ AAI uses **mainstream automation tools and their native IPC methods** on each pl
 **JXA (JavaScript for Automation)** is AppleScript's modern alternative using JavaScript syntax, more popular among developers.
 
 **IPC Method: AppleEvents**
+
 - AppleScript uses AppleEvents for inter-process communication underneath
 - This is macOS's native IPC mechanism with excellent performance
 
 **Example (AppleScript):**
+
 ```applescript
 tell application "Mail"
     set newMessage to make new outgoing message with properties {subject:"Hello", content:"Hi Alice...", visible:false}
@@ -318,16 +319,17 @@ end tell
 ```
 
 **Example (JXA):**
+
 ```javascript
 const Mail = Application('Mail');
 Mail.activate();
 const msg = Mail.OutgoingMessage({
   subject: 'Hello',
   content: 'Hi Alice...',
-  visible: false
+  visible: false,
 });
 Mail.outgoingMessages.push(msg);
-msg.toRecipients.push(Mail.Recipient({address: 'alice@example.com'}));
+msg.toRecipients.push(Mail.Recipient({ address: 'alice@example.com' }));
 msg.send();
 ```
 
@@ -336,10 +338,12 @@ msg.send();
 **COM (Component Object Model)** is Windows's binary interface standard, supported by almost all Windows applications and the Office suite.
 
 **IPC Method: COM IPC**
+
 - COM uses the IDispatch interface for cross-process calls
 - This is Windows's native IPC mechanism with excellent performance
 
 **Example (PowerShell):**
+
 ```powershell
 $outlook = New-Object -ComObject Outlook.Application
 $mail = $outlook.CreateItem(0)
@@ -350,6 +354,7 @@ $mail.Send()
 ```
 
 **Example (Python with pywin32):**
+
 ```python
 import win32com.client
 
@@ -366,10 +371,12 @@ mail.Send()
 **DBus** is the standard message bus system for Linux desktop environments, supported by most desktop applications.
 
 **IPC Method: DBus IPC**
+
 - DBus provides inter-process message passing
 - This is the standard IPC mechanism for Linux desktops
 
 **Example (Python):**
+
 ```python
 import dbus
 
@@ -380,51 +387,17 @@ mail_iface = dbus.Interface(mail_obj, 'org.example.Mail')
 mail_iface.send_email("alice@example.com", "Hello", "Hi Alice...")
 ```
 
-#### 2.3.4 Android: Intent
-
-**Intent** is Android's native message passing mechanism for inter-component communication.
-
-**IPC Method: Binder IPC**
-- Intent uses Android Binder for cross-process communication underneath
-- This is Android's native IPC mechanism
-
-**Example (Kotlin):**
-```kotlin
-val intent = Intent("com.example.MAIL_SEND").apply {
-    putExtra("to", "alice@example.com")
-    putExtra("subject", "Hello")
-    putExtra("body", "Hi Alice...")
-}
-startService(intent)
-```
-
-#### 2.3.5 iOS: URL Scheme
-
-**URL Scheme** is iOS's native application inter-communication method.
-
-**IPC Method: iOS IPC**
-- URL Scheme uses the iOS system for inter-application calls
-- This is the standard way for iOS apps to communicate
-
-**Example (Swift):**
-```swift
-let url = URL(string: "mailapp://send?to=alice@example.com&subject=Hello&body=Hi%20Alice...")!
-UIApplication.shared.open(url)
-```
-
 ---
 
 ### 2.4 Security Model
 
 AAI uses operating system's native security mechanisms, no additional authorization protocol needed.
 
-| Platform | Authorization Mechanism | User Experience |
-|----------|----------------------|-----------------|
-| **macOS** | System TCC (Transparency, Consent, and Control) | First-time automation tool use popup: "AAI Gateway wants to control Mail" → [Allow]/[Deny] |
-| **Windows** | UAC (User Account Control) or application's own prompt | Some apps show security warning when using COM for the first time |
-| **Linux** | Polkit or desktop environment security framework | System-level security prompt |
-| **Android** | Runtime permissions | System popup when app first uses related functionality |
-| **iOS** | System sandbox + URL Scheme restrictions | System prompts user to confirm when URL Scheme is invoked |
+| Platform    | Authorization Mechanism                                | User Experience                                                                            |
+| ----------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| **macOS**   | System TCC (Transparency, Consent, and Control)        | First-time automation tool use popup: "AAI Gateway wants to control Mail" → [Allow]/[Deny] |
+| **Windows** | UAC (User Account Control) or application's own prompt | Some apps show security warning when using COM for the first time                          |
+| **Linux**   | Polkit or desktop environment security framework       | System-level security prompt                                                               |
 
 #### macOS TCC Authorization Flow
 
@@ -483,16 +456,18 @@ Each application supporting AAI provides `aai.json` in a unified AAI configurati
 
 #### File Location
 
-| Platform | Path |
-|----------|------|
-| macOS / Linux | `~/.aai/<appId>/aai.json` |
-| Windows | `%USERPROFILE%\.aai\<appId>\aai.json` |
+| Platform      | Path                                  |
+| ------------- | ------------------------------------- |
+| macOS / Linux | `~/.aai/<appId>/aai.json`             |
+| Windows       | `%USERPROFILE%\.aai\<appId>\aai.json` |
 
 **Examples:**
+
 - macOS: `~/.aai/com.apple.mail/aai.json`
 - Windows: `C:\Users\Alice\.aai\com.microsoft.outlook\aai.json`
 
 **Advantages:**
+
 - No need to modify signed application packages
 - No administrator permissions required
 - Users or the community can freely add, modify, and delete configurations
@@ -558,13 +533,19 @@ Each application supporting AAI provides `aai.json` in a unified AAI configurati
             "required": ["to", "subject", "body"]
           },
           "script": [
-            {"action": "create", "var": "app", "progid": "Outlook.Application"},
-            {"action": "call", "var": "mail", "object": "app", "method": "CreateItem", "args": [0]},
-            {"action": "set", "object": "mail", "property": "To", "value": "${to}"},
-            {"action": "set", "object": "mail", "property": "Subject", "value": "${subject}"},
-            {"action": "set", "object": "mail", "property": "Body", "value": "${body}"},
-            {"action": "call", "object": "mail", "method": "Send"},
-            {"action": "return", "value": "{\"success\":true, \"message_id\":\"generated\"}"}
+            { "action": "create", "var": "app", "progid": "Outlook.Application" },
+            {
+              "action": "call",
+              "var": "mail",
+              "object": "app",
+              "method": "CreateItem",
+              "args": [0]
+            },
+            { "action": "set", "object": "mail", "property": "To", "value": "${to}" },
+            { "action": "set", "object": "mail", "property": "Subject", "value": "${subject}" },
+            { "action": "set", "object": "mail", "property": "Body", "value": "${body}" },
+            { "action": "call", "object": "mail", "method": "Send" },
+            { "action": "return", "value": "{\"success\":true, \"message_id\":\"generated\"}" }
           ],
           "output_parser": "last_result"
         }
@@ -650,76 +631,76 @@ Each application supporting AAI provides `aai.json` in a unified AAI configurati
 
 ##### Common Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
+| Field            | Type   | Description                                                 |
+| ---------------- | ------ | ----------------------------------------------------------- |
 | `schema_version` | string | Schema version of aai.json, used for compatibility checking |
-| `appId` | string | Unique identifier (recommended to use reverse-DNS format) |
-| `name` | string | Application name |
-| `description` | string | Application description |
-| `version` | string | aai.json version number |
-| `platforms` | object | Automation configuration for each platform |
+| `appId`          | string | Unique identifier (recommended to use reverse-DNS format)   |
+| `name`           | string | Application name                                            |
+| `description`    | string | Application description                                     |
+| `version`        | string | aai.json version number                                     |
+| `platforms`      | object | Automation configuration for each platform                  |
 
 ##### macOS Specific Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `platforms.macos.automation` | string | Automation type: `applescript` or `jxa` |
-| `platforms.macos.tools[].script` | string | Script template, supports `${param}` placeholders |
-| `platforms.macos.tools[].output_parser` | string | Output parsing method: `result as text` (string), `result as record` (dictionary) |
-| `platforms.macos.tools[].timeout` | integer | Timeout in seconds, default 30 |
+| Field                                   | Type    | Description                                                                       |
+| --------------------------------------- | ------- | --------------------------------------------------------------------------------- |
+| `platforms.macos.automation`            | string  | Automation type: `applescript` or `jxa`                                           |
+| `platforms.macos.tools[].script`        | string  | Script template, supports `${param}` placeholders                                 |
+| `platforms.macos.tools[].output_parser` | string  | Output parsing method: `result as text` (string), `result as record` (dictionary) |
+| `platforms.macos.tools[].timeout`       | integer | Timeout in seconds, default 30                                                    |
 
 ##### Windows Specific Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `platforms.windows.automation` | string | Automation type: `com` |
-| `platforms.windows.progid` | string | COM ProgID (e.g., `Outlook.Application`) |
-| `platforms.windows.tools[].script` | array | COM operation sequence |
-| `platforms.windows.tools[].script[].action` | string | Operation type: `create` (create object), `call` (call method), `set` (set property), `get` (get property), `return` (return result) |
-| `platforms.windows.tools[].script[].var` | string | Variable name (for storing return values) |
-| `platforms.windows.tools[].script[].object` | string | Object reference (e.g., `mail`, `app`) |
-| `platforms.windows.tools[].script[].progid` | string | ProgID (only used in `create` operations) |
-| `platforms.windows.tools[].script[].method` | string | Method name (only used in `call` operations) |
-| `platforms.windows.tools[].script[].property` | string | Property name (only used in `set`/`get` operations) |
-| `platforms.windows.tools[].script[].value` | string | Property value (supports `${param}` placeholders) |
-| `platforms.windows.tools[].script[].args` | array | Method arguments (supports `${param}` placeholders) |
-| `platforms.windows.tools[].output_parser` | string | Output parsing method: `last_result` (return value of last operation) |
-| `platforms.windows.tools[].timeout` | integer | Timeout in seconds, default 30 |
+| Field                                         | Type    | Description                                                                                                                          |
+| --------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `platforms.windows.automation`                | string  | Automation type: `com`                                                                                                               |
+| `platforms.windows.progid`                    | string  | COM ProgID (e.g., `Outlook.Application`)                                                                                             |
+| `platforms.windows.tools[].script`            | array   | COM operation sequence                                                                                                               |
+| `platforms.windows.tools[].script[].action`   | string  | Operation type: `create` (create object), `call` (call method), `set` (set property), `get` (get property), `return` (return result) |
+| `platforms.windows.tools[].script[].var`      | string  | Variable name (for storing return values)                                                                                            |
+| `platforms.windows.tools[].script[].object`   | string  | Object reference (e.g., `mail`, `app`)                                                                                               |
+| `platforms.windows.tools[].script[].progid`   | string  | ProgID (only used in `create` operations)                                                                                            |
+| `platforms.windows.tools[].script[].method`   | string  | Method name (only used in `call` operations)                                                                                         |
+| `platforms.windows.tools[].script[].property` | string  | Property name (only used in `set`/`get` operations)                                                                                  |
+| `platforms.windows.tools[].script[].value`    | string  | Property value (supports `${param}` placeholders)                                                                                    |
+| `platforms.windows.tools[].script[].args`     | array   | Method arguments (supports `${param}` placeholders)                                                                                  |
+| `platforms.windows.tools[].output_parser`     | string  | Output parsing method: `last_result` (return value of last operation)                                                                |
+| `platforms.windows.tools[].timeout`           | integer | Timeout in seconds, default 30                                                                                                       |
 
 ##### Linux Specific Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `platforms.linux.automation` | string | Automation type: `dbus` |
-| `platforms.linux.service` | string | DBus service name (e.g., `org.example.Mail`) |
-| `platforms.linux.object` | string | DBus object path (e.g., `/org/example/Mail`) |
-| `platforms.linux.interface` | string | DBus interface name (e.g., `org.example.Mail`) |
-| `platforms.linux.tools[].method` | string | DBus method name (e.g., `SendEmail`) |
-| `platforms.linux.tools[].output_parser` | string | Output parsing method: `json` (assumes JSON return), `string` |
-| `platforms.linux.tools[].timeout` | integer | Timeout in seconds, default 30 |
+| Field                                   | Type    | Description                                                   |
+| --------------------------------------- | ------- | ------------------------------------------------------------- |
+| `platforms.linux.automation`            | string  | Automation type: `dbus`                                       |
+| `platforms.linux.service`               | string  | DBus service name (e.g., `org.example.Mail`)                  |
+| `platforms.linux.object`                | string  | DBus object path (e.g., `/org/example/Mail`)                  |
+| `platforms.linux.interface`             | string  | DBus interface name (e.g., `org.example.Mail`)                |
+| `platforms.linux.tools[].method`        | string  | DBus method name (e.g., `SendEmail`)                          |
+| `platforms.linux.tools[].output_parser` | string  | Output parsing method: `json` (assumes JSON return), `string` |
+| `platforms.linux.tools[].timeout`       | integer | Timeout in seconds, default 30                                |
 
 ##### Android Specific Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `platforms.android.automation` | string | Automation type: `intent` |
-| `platforms.android.package` | string | Android package name (e.g., `com.example.mail`) |
-| `platforms.android.tools[].action` | string | Intent Action (e.g., `com.example.MAIL_SEND`) |
-| `platforms.android.tools[].extras` | object | Intent Extra parameters (supports `${param}` placeholders) |
-| `platforms.android.tools[].result_type` | string | Result retrieval method: `content_provider` (Content Provider), `broadcast` (broadcast) |
-| `platforms.android.tools[].result_uri` | string | Content Provider URI (only used when `result_type=content_provider`) |
-| `platforms.android.tools[].timeout` | integer | Timeout in milliseconds, default 5000 |
+| Field                                   | Type    | Description                                                                             |
+| --------------------------------------- | ------- | --------------------------------------------------------------------------------------- |
+| `platforms.android.automation`          | string  | Automation type: `intent`                                                               |
+| `platforms.android.package`             | string  | Android package name (e.g., `com.example.mail`)                                         |
+| `platforms.android.tools[].action`      | string  | Intent Action (e.g., `com.example.MAIL_SEND`)                                           |
+| `platforms.android.tools[].extras`      | object  | Intent Extra parameters (supports `${param}` placeholders)                              |
+| `platforms.android.tools[].result_type` | string  | Result retrieval method: `content_provider` (Content Provider), `broadcast` (broadcast) |
+| `platforms.android.tools[].result_uri`  | string  | Content Provider URI (only used when `result_type=content_provider`)                    |
+| `platforms.android.tools[].timeout`     | integer | Timeout in milliseconds, default 5000                                                   |
 
 ##### iOS Specific Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `platforms.ios.automation` | string | Automation type: `url_scheme` |
-| `platforms.ios.scheme` | string | URL Scheme (e.g., `mailapp`) |
-| `platforms.ios.tools[].url_template` | string | URL template (supports `${param}` placeholders) |
-| `platforms.ios.tools[].result_type` | string | Result retrieval method: `app_group` (App Groups), `clipboard` (clipboard) |
-| `platforms.ios.tools[].app_group_id` | string | App Group ID (only used when `result_type=app_group`) |
-| `platforms.ios.tools[].timeout` | integer | Timeout in seconds, default 10 |
+| Field                                | Type    | Description                                                                |
+| ------------------------------------ | ------- | -------------------------------------------------------------------------- |
+| `platforms.ios.automation`           | string  | Automation type: `url_scheme`                                              |
+| `platforms.ios.scheme`               | string  | URL Scheme (e.g., `mailapp`)                                               |
+| `platforms.ios.tools[].url_template` | string  | URL template (supports `${param}` placeholders)                            |
+| `platforms.ios.tools[].result_type`  | string  | Result retrieval method: `app_group` (App Groups), `clipboard` (clipboard) |
+| `platforms.ios.tools[].app_group_id` | string  | App Group ID (only used when `result_type=app_group`)                      |
+| `platforms.ios.tools[].timeout`      | integer | Timeout in seconds, default 10                                             |
 
 ---
 
@@ -847,18 +828,18 @@ Gateway should return standardized error responses:
 
 #### Error Code Definitions
 
-| Error Code | Type | Description |
-|-----------|------|-------------|
-| -32001 | AUTOMATION_FAILED | Automation script execution failed |
-| -32002 | APP_NOT_FOUND | Target application not installed or cannot be found |
-| -32003 | TOOL_NOT_FOUND | Requested tool does not exist in aai.json |
-| -32004 | PERMISSION_DENIED | Insufficient permissions, requires user authorization |
-| -32005 | INVALID_PARAMS | Parameter validation failed |
-| -32006 | AUTOMATION_NOT_SUPPORTED | Platform does not support specified automation type |
-| -32007 | AAI_JSON_INVALID | aai.json format error or does not match schema |
-| -32008 | TIMEOUT | Operation timed out |
-| -32009 | APP_NOT_RUNNING | Application not running and cannot be started |
-| -32010 | SCRIPT_PARSE_ERROR | Script parsing error |
+| Error Code | Type                     | Description                                           |
+| ---------- | ------------------------ | ----------------------------------------------------- |
+| -32001     | AUTOMATION_FAILED        | Automation script execution failed                    |
+| -32002     | APP_NOT_FOUND            | Target application not installed or cannot be found   |
+| -32003     | TOOL_NOT_FOUND           | Requested tool does not exist in aai.json             |
+| -32004     | PERMISSION_DENIED        | Insufficient permissions, requires user authorization |
+| -32005     | INVALID_PARAMS           | Parameter validation failed                           |
+| -32006     | AUTOMATION_NOT_SUPPORTED | Platform does not support specified automation type   |
+| -32007     | AAI_JSON_INVALID         | aai.json format error or does not match schema        |
+| -32008     | TIMEOUT                  | Operation timed out                                   |
+| -32009     | APP_NOT_RUNNING          | Application not running and cannot be started         |
+| -32010     | SCRIPT_PARSE_ERROR       | Script parsing error                                  |
 
 ---
 
@@ -926,12 +907,14 @@ Gateway should return standardized error responses:
 
 **Existing automation support:**
 If the application already supports AppleScript or JXA, **zero code** is needed to integrate with AAI:
+
 1. Write `aai.json` configuration file
 2. Place in `~/.aai/<appId>/aai.json`
 3. Done!
 
 **No automation support:**
 If the application has no automation support, you need to:
+
 1. Enable AppleScript in `Info.plist`:
    ```xml
    <key>NSAppleScriptEnabled</key>
@@ -944,6 +927,7 @@ If the application has no automation support, you need to:
 
 **Existing automation support:**
 If the application already supports COM, **zero code** is needed to integrate with AAI:
+
 1. Confirm the application's ProgID (e.g., `MyApp.Application`)
 2. Write `aai.json` configuration file
 3. Place in `%USERPROFILE%\.aai\<appId>\aai.json`
@@ -951,6 +935,7 @@ If the application already supports COM, **zero code** is needed to integrate wi
 
 **No automation support:**
 If the application has no automation support, you need to:
+
 1. Implement COM IDispatch interface (C#/C++)
 2. Register ProgID
 3. Write `aai.json` configuration file
@@ -959,6 +944,7 @@ If the application has no automation support, you need to:
 
 **Existing automation support:**
 If the application already supports DBus, **zero code** is needed to integrate with AAI:
+
 1. Confirm DBus service name, object path, interface
 2. Write `aai.json` configuration file
 3. Place in `~/.aai/<appId>/aai.json`
@@ -966,28 +952,14 @@ If the application already supports DBus, **zero code** is needed to integrate w
 
 **No automation support:**
 If the application has no automation support, you need to:
+
 1. Implement DBus interface
 2. Write `aai.json` configuration file
-
-#### Android Integration
-
-All Android apps support Intent, you only need to:
-1. Declare Service in `AndroidManifest.xml`:
-   ```xml
-   <service
-       android:name=".AAIService"
-       android:exported="true">
-       <intent-filter>
-           <action android:name="com.example.MAIL_SEND" />
-       </intent-filter>
-   </service>
-   ```
-2. Implement Intent handling logic
-3. Write `aai.json` configuration file
 
 #### iOS Integration
 
 All iOS apps support URL Scheme, you only need to:
+
 1. Declare URL Scheme in `Info.plist`:
    ```xml
    <key>CFBundleURLTypes</key>
@@ -1006,6 +978,7 @@ All iOS apps support URL Scheme, you only need to:
 #### Third-Party Configuration
 
 Users or the community can also create aai.json configuration for existing applications:
+
 1. Create directory: `~/.aai/<appId>/`
 2. Write `aai.json` describing the application's existing automation interfaces
 3. Gateway automatically discovers and loads
@@ -1030,12 +1003,14 @@ mcpServers: {
 #### LM Studio / Jan
 
 Add MCP server in plugin settings:
+
 - Command: `aai-gateway`
 - Args: `--mcp`
 
 #### Cursor / Cline
 
 Add in MCP server configuration:
+
 ```json
 {
   "mcpServers": {
@@ -1053,14 +1028,14 @@ Add in MCP server configuration:
 
 AAI defines the following constraints to ensure protocol simplicity and security:
 
-| Constraint | Description |
-|-------------|-------------|
-| **Only use** platform-native automation tools | AppleScript, COM, DBus, Intent, URL Scheme |
-| **Do not require** App to start additional HTTP Server | Avoids resource waste and complexity |
-| **Do not require** App to implement OAuth | Use operating system's native authorization mechanisms |
-| **Do not replace** system security mechanisms | TCC/COM permissions managed by OS |
-| **Support** existing applications | Leverage application's existing automation capabilities |
-| **Do not force** use of specific programming language | Applications can implement automation interfaces in any language |
+| Constraint                                             | Description                                                      |
+| ------------------------------------------------------ | ---------------------------------------------------------------- |
+| **Only use** platform-native automation tools          | AppleScript, COM, DBus, Intent, URL Scheme                       |
+| **Do not require** App to start additional HTTP Server | Avoids resource waste and complexity                             |
+| **Do not require** App to implement OAuth              | Use operating system's native authorization mechanisms           |
+| **Do not replace** system security mechanisms          | TCC/COM permissions managed by OS                                |
+| **Support** existing applications                      | Leverage application's existing automation capabilities          |
+| **Do not force** use of specific programming language  | Applications can implement automation interfaces in any language |
 
 ---
 
@@ -1068,17 +1043,18 @@ AAI defines the following constraints to ensure protocol simplicity and security
 
 #### Cost Tiers
 
-| Application Type | Existing Capabilities | Human Cost | Cost with AI Assistance |
-|------------------|---------------------|-----------|------------------------|
-| **Existing automation support** | macOS system apps, Office suite, apps supporting COM/DBus | **Zero code** (write aai.json) | **Seconds** (AI auto-generates) |
-| **Has script interface** | Apps supporting Python/PowerShell scripts | **Zero code** (wrap as aai.json) | **Minutes** (AI auto-wraps) |
-| **No automation interface** | Native apps, games | 3-5 days (add automation) | **Hours to days** (AI modifies code) |
+| Application Type                | Existing Capabilities                                     | Human Cost                       | Cost with AI Assistance              |
+| ------------------------------- | --------------------------------------------------------- | -------------------------------- | ------------------------------------ |
+| **Existing automation support** | macOS system apps, Office suite, apps supporting COM/DBus | **Zero code** (write aai.json)   | **Seconds** (AI auto-generates)      |
+| **Has script interface**        | Apps supporting Python/PowerShell scripts                 | **Zero code** (wrap as aai.json) | **Minutes** (AI auto-wraps)          |
+| **No automation interface**     | Native apps, games                                        | 3-5 days (add automation)        | **Hours to days** (AI modifies code) |
 
 #### AI Coding Acceleration Example
 
 **Scenario: Generate aai.json for Mail application**
 
 **Prompt to AI:**
+
 ```
 Analyze Apple Mail's AppleScript documentation and generate an AAI aai.json description file.
 Need to expose these tools:
@@ -1111,14 +1087,14 @@ Ready to use AAI capabilities
 
 #### Compatible Frameworks
 
-| Framework | MCP Support | Integration Method |
-|-----------|-------------|-------------------|
-| **Cursor** | ✅ Native support | MCP server configuration |
-| **Continue.dev** | ✅ Native support | Configure `mcpServers` |
-| **Cline** | ✅ Native support | MCP configuration file |
-| **LibreChat** | ✅ Native support | MCP connection configuration |
-| **Cherry Studio** | ✅ Native support | MCP service configuration |
-| **LobeHub** | ✅ Native support | MCP client configuration |
+| Framework         | MCP Support       | Integration Method           |
+| ----------------- | ----------------- | ---------------------------- |
+| **Cursor**        | ✅ Native support | MCP server configuration     |
+| **Continue.dev**  | ✅ Native support | Configure `mcpServers`       |
+| **Cline**         | ✅ Native support | MCP configuration file       |
+| **LibreChat**     | ✅ Native support | MCP connection configuration |
+| **Cherry Studio** | ✅ Native support | MCP service configuration    |
+| **LobeHub**       | ✅ Native support | MCP client configuration     |
 
 **No need to modify framework code, just add AAI Gateway configuration.**
 
@@ -1126,24 +1102,69 @@ Ready to use AAI capabilities
 
 ### 2.14 Advantages Summary
 
-| Issue | AAI Solution |
-|-------|--------------|
-| High app integration cost? | Apps only need to provide `aai.json` descriptor |
-| Need additional server? | **No**, direct invocation |
-| Need OAuth? | **No**, uses system's native authorization mechanisms |
-| Agent needs custom development? | Zero code, standard MCP is enough |
-| Context too large? | Progressive tool loading |
-| Cross-platform? | Unified abstraction, platform-specific implementation |
-| Slow operation speed? | **Millisecond-level calls** vs seconds for GUI automation |
-| Cannot parallelize? | Supports multi-application parallel operations |
+| Issue                           | AAI Solution                                              |
+| ------------------------------- | --------------------------------------------------------- |
+| High app integration cost?      | Apps only need to provide `aai.json` descriptor           |
+| Need additional server?         | **No**, direct invocation                                 |
+| Need OAuth?                     | **No**, uses system's native authorization mechanisms     |
+| Agent needs custom development? | Zero code, standard MCP is enough                         |
+| Context too large?              | Progressive tool loading                                  |
+| Cross-platform?                 | Unified abstraction, platform-specific implementation     |
+| Slow operation speed?           | **Millisecond-level calls** vs seconds for GUI automation |
+| Cannot parallelize?             | Supports multi-application parallel operations            |
 
 ---
 
-## Part III: Roadmap
+## Part III: Getting Started
+
+### Installation
+
+```bash
+npm install -g aai-gateway
+```
+
+### Usage
+
+Start the Gateway in MCP mode (standard usage):
+
+```bash
+aai-gateway --mcp
+```
+
+Start with Web UI:
+
+```bash
+aai-gateway --web
+```
+
+### CLI Commands
+
+- `aai-gateway --scan`: Manually scan for configured applications.
+- `aai-gateway --discover`: Auto-discover system applications (macOS).
+- `aai-gateway --generate <app>`: Use AI to generate `aai.json` for an application.
+
+### Configuration
+
+Configuration file location: `~/.aai/config.json`
+
+```json
+{
+  "scanPaths": ["~/.aai"],
+  "defaultTimeout": 30,
+  "logLevel": "info",
+  "enableWebUI": true,
+  "httpPort": 3000
+}
+```
+
+---
+
+## Part IV: Roadmap
 
 ### Current Status
 
 ✅ **Protocol design complete**
+
 - Defined aai.json schema for describing application tools
 - Based on MCP standards for Agent integration
 - Cross-platform support (macOS, Windows, Linux, Android, iOS)
@@ -1154,41 +1175,41 @@ Ready to use AAI capabilities
 
 #### Core Features
 
-- [ ] **MCP Server Implementation** (resources/list, resources/read, tools/call)
+- [x] **MCP Server Implementation** (resources/list, resources/read, tools/call)
 
-- [ ] **Automation Executors**
-  - [ ] macOS (AppleScript/JXA executor, parameter replacement, output parsing)
-  - [ ] Windows (COM object creation, script execution, UAC handling)
-  - [ ] Linux (DBus method invocation)
-  - [ ] Android (Intent sending, Content Provider results)
-  - [ ] iOS (URL Scheme invocation, App Groups results)
+- [x] **Automation Executors**
+  - [x] macOS (AppleScript/JXA executor, parameter replacement, output parsing)
+  - [x] Windows (COM object creation, script execution, UAC handling)
+  - [x] Linux (DBus method invocation)
+  - [ ] Android (Intent sending, Content Provider results) - **Removed**
+  - [ ] iOS (URL Scheme invocation, App Groups results) - **Removed**
 
 #### Configuration Management
 
-- [ ] **Application Discovery and Auto-Generation**
-  - [ ] Scan `~/.aai/` directory and load existing `aai.json` files
-  - [ ] Auto-discover system apps with automation support (macOS AppleScript/JXA, Windows COM, Linux DBus)
-  - [ ] Generate `aai.json` automatically from app automation interfaces
-  - [ ] AI-powered descriptor generation for discovered apps
-  - [ ] Scheduled periodic scanning (configurable interval)
-  - [ ] Manual scan trigger (CLI/Web UI)
+- [x] **Application Discovery and Auto-Generation**
+  - [x] Scan `~/.aai/` directory and load existing `aai.json` files
+  - [x] Auto-discover system apps with automation support (macOS AppleScript/JXA, Windows COM, Linux DBus)
+  - [x] Generate `aai.json` automatically from app automation interfaces
+  - [x] AI-powered descriptor generation for discovered apps
+  - [x] Scheduled periodic scanning (configurable interval)
+  - [x] Manual scan trigger (CLI/Web UI)
 
-- [ ] **Configuration File Support**
-  - [ ] `~/.aai/config.json` - Gateway configuration
-  - [ ] Support custom scan paths
-  - [ ] Support timeout time configuration
+- [x] **Configuration File Support**
+  - [x] `~/.aai/config.json` - Gateway configuration
+  - [x] Support custom scan paths
+  - [x] Support timeout time configuration
 
 #### Error Handling and Logging
 
-- [ ] Standardized error handling (error codes, retry mechanism)
-- [ ] Logging system (operation/error logs, log level control)
+- [x] Standardized error handling (error codes, retry mechanism)
+- [x] Logging system (operation/error logs, log level control)
 
 #### Web UI (HTTP Interface)
 
-- [ ] HTTP server on same port as MCP server with `/ui` endpoint
-- [ ] Configuration management (view/edit settings, scan paths, timeouts)
-- [ ] App management (list/view/add/remove applications and aai.json)
-- [ ] Call history viewer (filter by app/tool/time, show request/response details)
+- [x] HTTP server on same port as MCP server with `/ui` endpoint
+- [x] Configuration management (view settings, scan paths, timeouts)
+- [x] App management (list/view applications)
+- [x] Call history viewer (filter by app/tool/time, show request/response details)
 
 ### TODO: Phase 2 - Agent-Native App Store
 
@@ -1206,17 +1227,16 @@ Ready to use AAI capabilities
 
 ## Appendix A: Glossary
 
-| Term | Description |
-|------|-------------|
-| **AAI** | Agent App Interface, interface protocol between Agents and applications |
-| **MCP** | Model Context Protocol, LLM Agent standard tool protocol |
-| **IPC** | Inter-Process Communication, communication between processes |
-| **AppleScript** | macOS native scripting language for application automation |
-| **JXA** | JavaScript for Automation, AppleScript's modern alternative |
-| **COM** | Component Object Model, Windows native component communication mechanism |
-| **DBus** | Linux desktop system's standard message bus system |
-| **Intent** | Android native message passing mechanism |
-| **URL Scheme** | iOS application inter-communication standard |
+| Term            | Description                                                              |
+| --------------- | ------------------------------------------------------------------------ |
+| **AAI**         | Agent App Interface, interface protocol between Agents and applications  |
+| **MCP**         | Model Context Protocol, LLM Agent standard tool protocol                 |
+| **IPC**         | Inter-Process Communication, communication between processes             |
+| **AppleScript** | macOS native scripting language for application automation               |
+| **JXA**         | JavaScript for Automation, AppleScript's modern alternative              |
+| **COM**         | Component Object Model, Windows native component communication mechanism |
+| **DBus**        | Linux desktop system's standard message bus system                       |
+
 | **TCC** | Transparency, Consent, and Control, macOS privacy framework |
 | **UAC** | User Account Control, Windows user account control |
 | **AppleEvents** | IPC mechanism underlying AppleScript |
@@ -1241,8 +1261,6 @@ Ready to use AAI capabilities
 │     - macOS: AppleScript/JXA Executor   │
 │     - Windows: COM Executor           │
 │     - Linux: DBus Executor            │
-│     - Android: Intent Executor         │
-│     - iOS: URL Scheme Executor         │
 ├─────────────────────────────────────────┤
 │  3. aai.json Parser                    │
 │     - Schema validation                │
@@ -1258,15 +1276,13 @@ Ready to use AAI capabilities
 
 ### Recommended Technology Stack
 
-| Component | Recommended Implementation | Description |
-|-----------|-------------------------|-------------|
-| MCP Server | `@modelcontextprotocol/sdk` TypeScript SDK / Python SDK | Official SDK |
-| aai.json Parsing | `jsonschema` Python / `ajv` JavaScript | Schema validation |
-| macOS Automation | `osascript` CLI / `pyobjc` | AppleScript/JXA execution |
-| Windows Automation | `pywin32` / `win32com` | COM calls |
-| Linux Automation | `dbus-python` | DBus calls |
-| Android Automation | `adb` / Android SDK | Intent sending |
-| iOS Automation | `xcrun simctl` / iOS SDK | URL Scheme calls |
+| Component          | Recommended Implementation                              | Description               |
+| ------------------ | ------------------------------------------------------- | ------------------------- |
+| MCP Server         | `@modelcontextprotocol/sdk` TypeScript SDK / Python SDK | Official SDK              |
+| aai.json Parsing   | `jsonschema` Python / `ajv` JavaScript                  | Schema validation         |
+| macOS Automation   | `osascript` CLI / `pyobjc`                              | AppleScript/JXA execution |
+| Windows Automation | `pywin32` / `win32com`                                  | COM calls                 |
+| Linux Automation   | `dbus-python`                                           | DBus calls                |
 
 ---
 
@@ -1366,7 +1382,70 @@ Ready to use AAI capabilities
                 "properties": {
                   "name": { "type": "string" },
                   "description": { "type": "string" },
-                  "parameters": { "type": "object", "description": "JSON Schema for tool parameters" },
+                  "parameters": {
+                    "type": "object",
+                    "description": "JSON Schema for tool parameters"
+                  },
+                  "method": { "type": "string" },
+                  "output_parser": { "type": "string" },
+                  "timeout": { "type": "integer" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+              }
+            }
+          }
+        },
+        "windows": {
+          "type": "object",
+          "properties": {
+            "automation": { "type": "string", "enum": ["com"] },
+            "progid": { "type": "string" },
+            "tools": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name", "description", "parameters", "script"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "description": { "type": "string" },
+                  "parameters": {
+                    "type": "object",
+                    "description": "JSON Schema for tool parameters"
+                  },
+                  "script": { "type": "array" },
+                  "output_parser": { "type": "string" },
+                  "timeout": { "type": "integer" }
+                }
+              }
+            }
+          }
+        },
+        "linux": {
+          "type": "object",
+          "properties": {
+            "automation": { "type": "string", "enum": ["dbus"] },
+            "service": { "type": "string" },
+            "object": { "type": "string" },
+            "interface": { "type": "string" },
+            "tools": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name", "description", "parameters", "method"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "description": { "type": "string" },
+                  "parameters": {
+                    "type": "object",
+                    "description": "JSON Schema for tool parameters"
+                  },
                   "method": { "type": "string" },
                   "output_parser": { "type": "string" },
                   "timeout": { "type": "integer" }
@@ -1388,7 +1467,10 @@ Ready to use AAI capabilities
                 "properties": {
                   "name": { "type": "string" },
                   "description": { "type": "string" },
-                  "parameters": { "type": "object", "description": "JSON Schema for tool parameters" },
+                  "parameters": {
+                    "type": "object",
+                    "description": "JSON Schema for tool parameters"
+                  },
                   "action": { "type": "string" },
                   "extras": { "type": "object" },
                   "result_type": { "type": "string" },
@@ -1412,7 +1494,10 @@ Ready to use AAI capabilities
                 "properties": {
                   "name": { "type": "string" },
                   "description": { "type": "string" },
-                  "parameters": { "type": "object", "description": "JSON Schema for tool parameters" },
+                  "parameters": {
+                    "type": "object",
+                    "description": "JSON Schema for tool parameters"
+                  },
                   "url_template": { "type": "string" },
                   "result_type": { "type": "string" },
                   "app_group_id": { "type": "string" },
@@ -1459,6 +1544,7 @@ mkdir -p ~/.aai/com.apple.mail
 ### 3. Usage
 
 In your Agent, request actions like:
+
 > "Send an email to alice@example.com with subject 'Hello' using Mail"
 
 On first use, the operating system will show an authorization dialog.
@@ -1469,4 +1555,4 @@ On first use, the operating system will show an authorization dialog.
 
 ---
 
-*License: CC BY-SA 4.0*
+_License: CC BY-SA 4.0_
