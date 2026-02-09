@@ -1,0 +1,107 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["schema_version", "appId", "name", "platforms"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+$"
+    },
+    "appId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$",
+      "description": "Reverse-DNS format unique identifier"
+    },
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "platforms": {
+      "type": "object",
+      "description": "Automation configuration for each platform",
+      "properties": {
+        "macos": {
+          "type": "object",
+          "properties": {
+            "automation": {
+              "type": "string",
+              "enum": ["applescript", "jxa"]
+            },
+            "tools": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name", "description", "parameters", "script"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "description": { "type": "string" },
+                  "parameters": {
+                    "type": "object",
+                    "description": "JSON Schema for tool parameters"
+                  },
+                  "script": { "type": "string" },
+                  "output_parser": { "type": "string" },
+                  "timeout": { "type": "integer" }
+                }
+              }
+            }
+          }
+        },
+        "windows": {
+          "type": "object",
+          "properties": {
+            "automation": { "type": "string", "enum": ["com"] },
+            "progid": { "type": "string" },
+            "tools": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name", "description", "parameters", "script"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "description": { "type": "string" },
+                  "parameters": { "type": "object", "description": "JSON Schema for tool parameters" },
+                  "script": { "type": "array" },
+                  "output_parser": { "type": "string" },
+                  "timeout": { "type": "integer" }
+                }
+              }
+            }
+          }
+        },
+        "linux": {
+          "type": "object",
+          "properties": {
+            "automation": { "type": "string", "enum": ["dbus"] },
+            "service": { "type": "string" },
+            "object": { "type": "string" },
+            "interface": { "type": "string" },
+            "tools": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name", "description", "parameters", "method"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "description": { "type": "string" },
+                  "parameters": {
+                    "type": "object",
+                    "description": "JSON Schema for tool parameters"
+                  },
+                  "method": { "type": "string" },
+                  "output_parser": { "type": "string" },
+                  "timeout": { "type": "integer" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

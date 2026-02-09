@@ -1,0 +1,149 @@
+{
+  "schema_version": "1.0",
+  "appId": "com.apple.mail",
+  "name": "Mail",
+  "description": "Apple's native email client",
+  "version": "1.0",
+  "platforms": {
+    "macos": {
+      "automation": "applescript",
+      "tools": [
+        {
+          "name": "send_email",
+          "description": "Send a new email via Apple Mail",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "to": { "type": "string", "description": "Recipient email address" },
+              "subject": { "type": "string", "description": "Email subject" },
+              "body": { "type": "string", "description": "Email body content" }
+            },
+            "required": ["to", "subject", "body"]
+          },
+          "script": "tell application \"Mail\"\n  set newMessage to make new outgoing message with properties {subject:\"${subject}\", content:\"${body}\", visible:false}\n  tell newMessage\n    make new to recipient at beginning of to recipients with properties {address:\"${to}\"}\n    send\n  end tell\nend tell\nreturn \"{\\\"success\\\":true, \\\"message_id\\\":\\\"generated\\\"}\"",
+          "output_parser": "result as text"
+        },
+        {
+          "name": "search_emails",
+          "description": "Search emails in mailbox",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "query": { "type": "string", "description": "Search query string" }
+            },
+            "required": ["query"]
+          },
+          "script": "tell application \"Mail\"\n  set results to (messages whose subject contains \"${query}\")\nend tell\nreturn \"{\\\"emails\\\":[\\\"result1\\\", \\\"result2\\\"]}\"",
+          "output_parser": "result as text"
+        }
+      ]
+    },
+    "windows": {
+      "automation": "com",
+      "progid": "Outlook.Application",
+      "tools": [
+        {
+          "name": "send_email",
+          "description": "Send a new email via Microsoft Outlook",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "to": { "type": "string", "description": "Recipient email address" },
+              "subject": { "type": "string", "description": "Email subject" },
+              "body": { "type": "string", "description": "Email body content" }
+            },
+            "required": ["to", "subject", "body"]
+          },
+          "script": [
+            { "action": "create", "var": "app", "progid": "Outlook.Application" },
+            {
+              "action": "call",
+              "var": "mail",
+              "object": "app",
+              "method": "CreateItem",
+              "args": [0]
+            },
+            { "action": "set", "object": "mail", "property": "To", "value": "${to}" },
+            { "action": "set", "object": "mail", "property": "Subject", "value": "${subject}" },
+            { "action": "set", "object": "mail", "property": "Body", "value": "${body}" },
+            { "action": "call", "object": "mail", "method": "Send" },
+            { "action": "return", "value": "{\"success\":true, \"message_id\":\"generated\"}" }
+          ],
+          "output_parser": "last_result"
+        }
+      ]
+    },
+    "linux": {
+      "automation": "dbus",
+      "service": "org.example.Mail",
+      "object": "/org/example/Mail",
+      "interface": "org.example.Mail",
+      "tools": [
+        {
+          "name": "send_email",
+          "description": "Send a new email",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "to": { "type": "string", "description": "Recipient email address" },
+              "subject": { "type": "string", "description": "Email subject" },
+              "body": { "type": "string", "description": "Email body content" }
+            },
+            "required": ["to", "subject", "body"]
+          },
+          "method": "SendEmail",
+          "output_parser": "json"
+        }
+      ]
+    },
+    "android": {
+      "automation": "intent",
+      "package": "com.example.mail",
+      "tools": [
+        {
+          "name": "send_email",
+          "description": "Send a new email",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "to": { "type": "string", "description": "Recipient email address" },
+              "subject": { "type": "string", "description": "Email subject" },
+              "body": { "type": "string", "description": "Email body content" }
+            },
+            "required": ["to", "subject", "body"]
+          },
+          "action": "com.example.MAIL_SEND",
+          "extras": {
+            "to": "${to}",
+            "subject": "${subject}",
+            "body": "${body}"
+          },
+          "result_type": "content_provider",
+          "result_uri": "content://com.example.mail/results"
+        }
+      ]
+    },
+    "ios": {
+      "automation": "url_scheme",
+      "scheme": "mailapp",
+      "tools": [
+        {
+          "name": "send_email",
+          "description": "Send a new email",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "to": { "type": "string", "description": "Recipient email address" },
+              "subject": { "type": "string", "description": "Email subject" },
+              "body": { "type": "string", "description": "Email body content" }
+            },
+            "required": ["to", "subject", "body"]
+          },
+          "url_template": "mailapp://send?to=${to}&subject=${subject}&body=${body}",
+          "result_type": "app_group",
+          "app_group_id": "group.com.example.mail"
+        }
+      ]
+    }
+  }
+}
