@@ -33,6 +33,10 @@ Gateway should return standardized error responses.
 | -32008     | TIMEOUT                  | Operation timed out                                   |
 | -32009     | APP_NOT_RUNNING          | Application not running and cannot be started         |
 | -32010     | SCRIPT_PARSE_ERROR       | Script parsing error                                  |
+| -32011     | AUTH_REQUIRED            | OAuth authorization required, user must authorize via browser |
+| -32012     | AUTH_EXPIRED             | OAuth token expired and refresh failed                |
+| -32013     | API_REQUEST_FAILED       | REST API request failed (HTTP 4xx/5xx)                |
+| -32014     | AUTH_CONFIG_INVALID      | Auth configuration invalid (missing env_var, bad OAuth config) |
 
 ---
 

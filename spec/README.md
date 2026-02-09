@@ -22,10 +22,12 @@ This directory contains the full technical specification for the AAI (Agent App 
 | [macOS](./platforms/macos.md) | AppleScript / JXA automation, integration guide |
 | [Windows](./platforms/windows.md) | COM automation, integration guide |
 | [Linux](./platforms/linux.md) | DBus automation, integration guide |
+| [Web / SaaS](./platforms/web.md) | REST API + OAuth 2.0, SaaS integration guide |
 
 ## Schema and Examples
 
 | Resource | Description |
 |----------|-------------|
 | [aai.schema.json](../schema/aai.schema.json) | Machine-readable JSON Schema for aai.json validation |
-| [com.apple.mail.aai.json](../examples/com.apple.mail.aai.json) | Example multi-platform aai.json for Apple Mail |
+| [com.apple.mail.aai.json](../examples/com.apple.mail.aai.json) | Example: Apple Mail (desktop, multi-platform) |
+| [com.notion.api.aai.json](../examples/com.notion.api.aai.json) | Example: Notion (web/SaaS, OAuth + REST API) |

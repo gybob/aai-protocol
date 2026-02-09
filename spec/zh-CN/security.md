@@ -1,16 +1,19 @@
 # 安全模型
 
-AAI 使用操作系统的原生安全机制，无需额外的授权协议。
+AAI 针对桌面应用和 Web/SaaS 应用采用不同的安全机制：
 
-## 平台授权概览
+- **桌面应用**：操作系统原生授权（TCC、UAC、Polkit）
+- **Web/SaaS 应用**：OAuth 2.0 / API Key 认证，由 Gateway 管理
 
-| 平台        | 授权机制                                                   | 用户体验                                                                                   |
-| ----------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| **macOS**   | 系统 TCC（Transparency, Consent, and Control）              | 首次使用自动化工具时弹窗提示："AAI Gateway 想要控制 Mail" -> [允许]/[拒绝]                        |
-| **Windows** | UAC（User Account Control）或应用程序自身的提示               | 部分应用在首次使用 COM 时会显示安全警告                                                         |
-| **Linux**   | Polkit 或桌面环境安全框架                                    | 系统级安全提示                                                                               |
+## 桌面应用授权
 
-## macOS TCC 授权流程
+| 平台        | 授权机制                                           | 用户体验                                                                               |
+| ----------- | -------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| **macOS**   | 系统 TCC（Transparency, Consent, and Control）      | 首次使用自动化工具时弹窗："AAI Gateway wants to control Mail" -> [允许]/[拒绝]            |
+| **Windows** | UAC（User Account Control）或应用自身的安全提示      | 部分应用在首次使用 COM 时显示安全警告                                                     |
+| **Linux**   | Polkit 或桌面环境安全框架                            | 系统级安全提示                                                                          |
+
+### macOS TCC 授权流程
 
 ```
 1. Agent requests to call Mail application
@@ -36,7 +39,7 @@ AAI 使用操作系统的原生安全机制，无需额外的授权协议。
 7. Subsequent calls don't require popup
 ```
 
-## Windows COM 安全流程
+### Windows COM 安全流程
 
 ```
 1. Agent requests to call Outlook
@@ -57,8 +60,80 @@ AAI 使用操作系统的原生安全机制，无需额外的授权协议。
 6. Subsequent calls may still require confirmation (depends on app settings)
 ```
 
-**注意：** AAI 不强制执行 Gateway 身份验证，完全信任操作系统及应用程序自身的安全机制。
+## Web / SaaS 应用授权
+
+对于基于 Web 的应用，Gateway 负责处理 OAuth 2.0 认证或 API Key 管理。
+
+### OAuth 2.0 授权流程
+
+```
+1. Agent calls a web tool (e.g., Notion search)
+   ↓
+2. Gateway checks: does ~/.aai/tokens/com.notion.api.json exist?
+   ↓
+3a. Token exists and valid → inject into request, proceed to step 7
+3b. Token exists but expired → auto-refresh via token_url, proceed to step 7
+3c. No token → start OAuth flow (step 4)
+   ↓
+4. Gateway opens browser for user authorization:
+   ┌──────────────────────────────────────┐
+   │  Notion wants you to grant access    │
+   │                                      │
+   │  AAI Gateway is requesting:          │
+   │  • Read your content                 │
+   │  • Update your content               │
+   │                                      │
+   │  [Cancel]            [Allow Access]  │
+   └──────────────────────────────────────┘
+   ↓
+5. User clicks [Allow Access]
+   ↓
+6. Gateway receives auth code → exchanges for access + refresh tokens
+   → stores in ~/.aai/tokens/<appId>.json
+   ↓
+7. Gateway sends API request with token in Authorization header
+   ↓
+8. SaaS app returns response → Gateway returns to Agent
+```
+
+### API Key / Bearer Token 流程
+
+```
+1. Agent calls a web tool
+   ↓
+2. Gateway reads API key from environment variable (defined in aai.json auth.env_var)
+   ↓
+3a. Key found → inject into request header/query
+3b. Key not found → return PERMISSION_DENIED error with instructions
+   ↓
+4. Send API request → return response to Agent
+```
+
+### 令牌存储
+
+| 平台 | 路径 |
+|------|------|
+| macOS / Linux | `~/.aai/tokens/<appId>.json` |
+| Windows | `%USERPROFILE%\.aai\tokens\<appId>.json` |
+
+令牌文件内容：
+```json
+{
+  "access_token": "...",
+  "refresh_token": "...",
+  "expires_at": 1700000000,
+  "token_type": "Bearer"
+}
+```
+
+### 安全原则
+
+- **Gateway 绝不在 aai.json 中存储客户端密钥** -- 密钥单独存储在 Gateway 配置中
+- **令牌存储在本地**用户主目录中，不会传输给 Agent 或 LLM
+- **Agent 只能看到 API 响应**，永远看不到原始令牌
+- **用户可随时撤销访问权限**，通过 SaaS 提供商的设置页面或删除令牌文件
+- **权限范围在 aai.json 中显式声明**，让用户知晓请求了哪些访问权限
 
 ---
 
-[← 返回规范索引](./README.md)
+[返回规范索引](./README.md)

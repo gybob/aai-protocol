@@ -1,0 +1,99 @@
+{
+  "schema_version": "1.0",
+  "appId": "com.notion.api",
+  "name": "Notion",
+  "description": "Notion workspace - notes, docs, wikis, and project management",
+  "version": "1.0",
+  "platforms": {
+    "web": {
+      "automation": "restapi",
+      "base_url": "https://api.notion.com/v1",
+      "auth": {
+        "type": "oauth2",
+        "auth_url": "https://api.notion.com/v1/oauth/authorize",
+        "token_url": "https://api.notion.com/v1/oauth/token",
+        "scopes": ["read_content", "update_content", "insert_content"],
+        "token_placement": "header",
+        "token_prefix": "Bearer"
+      },
+      "default_headers": {
+        "Notion-Version": "2022-06-28",
+        "Content-Type": "application/json"
+      },
+      "tools": [
+        {
+          "name": "search",
+          "description": "Search pages and databases in Notion workspace",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "query": {
+                "type": "string",
+                "description": "Search query text"
+              },
+              "page_size": {
+                "type": "integer",
+                "description": "Maximum number of results (1-100)",
+                "default": 10
+              }
+            },
+            "required": ["query"]
+          },
+          "endpoint": "/search",
+          "method": "POST",
+          "body": {
+            "query": "${query}",
+            "page_size": "${page_size}"
+          },
+          "output_parser": "json"
+        },
+        {
+          "name": "create_page",
+          "description": "Create a new page in a Notion database",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "database_id": {
+                "type": "string",
+                "description": "Target database ID"
+              },
+              "title": {
+                "type": "string",
+                "description": "Page title"
+              }
+            },
+            "required": ["database_id", "title"]
+          },
+          "endpoint": "/pages",
+          "method": "POST",
+          "body": {
+            "parent": { "database_id": "${database_id}" },
+            "properties": {
+              "title": {
+                "title": [{ "text": { "content": "${title}" } }]
+              }
+            }
+          },
+          "output_parser": "json"
+        },
+        {
+          "name": "get_page",
+          "description": "Retrieve a page by ID",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "page_id": {
+                "type": "string",
+                "description": "Page ID to retrieve"
+              }
+            },
+            "required": ["page_id"]
+          },
+          "endpoint": "/pages/${page_id}",
+          "method": "GET",
+          "output_parser": "json"
+        }
+      ]
+    }
+  }
+}

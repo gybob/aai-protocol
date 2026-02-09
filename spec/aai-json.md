@@ -170,6 +170,39 @@ Each application supporting AAI provides `aai.json` in a unified AAI configurati
           "app_group_id": "group.com.example.mail"
         }
       ]
+    },
+    "web": {
+      "automation": "restapi",
+      "base_url": "https://api.notion.com/v1",
+      "auth": {
+        "type": "oauth2",
+        "auth_url": "https://api.notion.com/v1/oauth/authorize",
+        "token_url": "https://api.notion.com/v1/oauth/token",
+        "scopes": ["read_content", "update_content"],
+        "token_placement": "header",
+        "token_prefix": "Bearer"
+      },
+      "default_headers": {
+        "Notion-Version": "2022-06-28",
+        "Content-Type": "application/json"
+      },
+      "tools": [
+        {
+          "name": "search",
+          "description": "Search pages and databases",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "query": { "type": "string", "description": "Search query text" }
+            },
+            "required": ["query"]
+          },
+          "endpoint": "/search",
+          "method": "POST",
+          "body": { "query": "${query}" },
+          "output_parser": "json"
+        }
+      ]
     }
   }
 }
@@ -249,6 +282,31 @@ Each application supporting AAI provides `aai.json` in a unified AAI configurati
 | `platforms.ios.tools[].result_type`  | string  | Result retrieval method: `app_group` (App Groups), `clipboard` (clipboard) |
 | `platforms.ios.tools[].app_group_id` | string  | App Group ID (only used when `result_type=app_group`)                      |
 | `platforms.ios.tools[].timeout`      | integer | Timeout in seconds, default 10                                             |
+
+### Web / SaaS Specific Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `platforms.web.automation` | string | Automation type: `restapi` |
+| `platforms.web.base_url` | string | Base URL for all API calls (e.g., `https://api.notion.com/v1`) |
+| `platforms.web.auth` | object | Authentication configuration |
+| `platforms.web.auth.type` | string | Auth type: `oauth2`, `api_key`, or `bearer` |
+| `platforms.web.auth.auth_url` | string | OAuth authorization endpoint (only for `oauth2`) |
+| `platforms.web.auth.token_url` | string | OAuth token endpoint (only for `oauth2`) |
+| `platforms.web.auth.scopes` | array | Required OAuth scopes (only for `oauth2`) |
+| `platforms.web.auth.token_placement` | string | Where to place token: `header` or `query` |
+| `platforms.web.auth.token_prefix` | string | Token prefix in header (e.g., `Bearer`) |
+| `platforms.web.auth.env_var` | string | Environment variable for API key / bearer token |
+| `platforms.web.auth.key_name` | string | Header or query param name (only for `api_key`) |
+| `platforms.web.auth.key_placement` | string | `header` or `query` (only for `api_key`) |
+| `platforms.web.default_headers` | object | Headers sent with every request |
+| `platforms.web.tools[].endpoint` | string | API endpoint path (appended to `base_url`) |
+| `platforms.web.tools[].method` | string | HTTP method: `GET`, `POST`, `PUT`, `PATCH`, `DELETE` |
+| `platforms.web.tools[].body` | object | Request body template (supports `${param}` placeholders) |
+| `platforms.web.tools[].query_params` | object | URL query parameters (supports `${param}` placeholders) |
+| `platforms.web.tools[].headers` | object | Additional headers for this specific tool |
+| `platforms.web.tools[].output_parser` | string | `json` (default) or `text` |
+| `platforms.web.tools[].timeout` | integer | Timeout in seconds, default 30 |
 
 ---
 

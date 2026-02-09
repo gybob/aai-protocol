@@ -13,6 +13,9 @@
 | **UAC**         | User Account Control, Windows user account control                       |
 | **AppleEvents** | IPC mechanism underlying AppleScript                                     |
 | **Gateway**     | AAI protocol gateway implementation, responsible for translating MCP requests to platform automation |
+| **OAuth 2.0**   | Open standard for access delegation, used for authorizing web/SaaS app access |
+| **REST API**    | Representational State Transfer API, standard web service interface using HTTP methods |
+| **SaaS**        | Software as a Service, cloud-based applications accessed via web browser or API |
 
 ---
 

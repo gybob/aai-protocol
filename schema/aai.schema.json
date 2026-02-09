@@ -100,6 +100,53 @@
               }
             }
           }
+        },
+        "web": {
+          "type": "object",
+          "description": "Web / SaaS application via REST API",
+          "properties": {
+            "automation": { "type": "string", "enum": ["restapi"] },
+            "base_url": { "type": "string", "format": "uri", "description": "Base URL for all API calls" },
+            "auth": {
+              "type": "object",
+              "description": "Authentication configuration",
+              "required": ["type"],
+              "properties": {
+                "type": { "type": "string", "enum": ["oauth2", "api_key", "bearer"] },
+                "auth_url": { "type": "string", "format": "uri", "description": "OAuth authorization endpoint" },
+                "token_url": { "type": "string", "format": "uri", "description": "OAuth token endpoint" },
+                "scopes": { "type": "array", "items": { "type": "string" }, "description": "Required OAuth scopes" },
+                "token_placement": { "type": "string", "enum": ["header", "query"], "description": "Where to place the token" },
+                "token_prefix": { "type": "string", "description": "Token prefix in header (e.g., Bearer)" },
+                "env_var": { "type": "string", "description": "Environment variable for API key or bearer token" },
+                "key_name": { "type": "string", "description": "Header or query param name for API key" },
+                "key_placement": { "type": "string", "enum": ["header", "query"], "description": "Where to place API key" }
+              }
+            },
+            "default_headers": { "type": "object", "description": "Headers sent with every request" },
+            "tools": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name", "description", "parameters", "endpoint", "method"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "description": { "type": "string" },
+                  "parameters": {
+                    "type": "object",
+                    "description": "JSON Schema for tool parameters"
+                  },
+                  "endpoint": { "type": "string", "description": "API endpoint path" },
+                  "method": { "type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"] },
+                  "body": { "type": "object", "description": "Request body template" },
+                  "query_params": { "type": "object", "description": "URL query parameters template" },
+                  "headers": { "type": "object", "description": "Additional headers for this tool" },
+                  "output_parser": { "type": "string", "enum": ["json", "text"] },
+                  "timeout": { "type": "integer" }
+                }
+              }
+            }
+          }
         }
       }
     }

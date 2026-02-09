@@ -1,8 +1,11 @@
 # Security Model
 
-AAI uses operating system's native security mechanisms, no additional authorization protocol needed.
+AAI uses different security mechanisms for desktop apps and web/SaaS apps:
 
-## Platform Authorization Overview
+- **Desktop apps**: Operating system's native authorization (TCC, UAC, Polkit)
+- **Web/SaaS apps**: OAuth 2.0 / API Key authentication, managed by Gateway
+
+## Desktop App Authorization
 
 | Platform    | Authorization Mechanism                                | User Experience                                                                            |
 | ----------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
@@ -10,7 +13,7 @@ AAI uses operating system's native security mechanisms, no additional authorizat
 | **Windows** | UAC (User Account Control) or application's own prompt | Some apps show security warning when using COM for the first time                          |
 | **Linux**   | Polkit or desktop environment security framework       | System-level security prompt                                                               |
 
-## macOS TCC Authorization Flow
+### macOS TCC Authorization Flow
 
 ```
 1. Agent requests to call Mail application
@@ -36,7 +39,7 @@ AAI uses operating system's native security mechanisms, no additional authorizat
 7. Subsequent calls don't require popup
 ```
 
-## Windows COM Security Flow
+### Windows COM Security Flow
 
 ```
 1. Agent requests to call Outlook
@@ -57,7 +60,79 @@ AAI uses operating system's native security mechanisms, no additional authorizat
 6. Subsequent calls may still require confirmation (depends on app settings)
 ```
 
-**Note:** AAI doesn't enforce Gateway identity verification, fully trusting the operating system and the application's own security mechanisms.
+## Web / SaaS App Authorization
+
+For web-based applications, Gateway handles OAuth 2.0 authentication or API key management.
+
+### OAuth 2.0 Authorization Flow
+
+```
+1. Agent calls a web tool (e.g., Notion search)
+   ↓
+2. Gateway checks: does ~/.aai/tokens/com.notion.api.json exist?
+   ↓
+3a. Token exists and valid → inject into request, proceed to step 7
+3b. Token exists but expired → auto-refresh via token_url, proceed to step 7
+3c. No token → start OAuth flow (step 4)
+   ↓
+4. Gateway opens browser for user authorization:
+   ┌──────────────────────────────────────┐
+   │  Notion wants you to grant access    │
+   │                                      │
+   │  AAI Gateway is requesting:          │
+   │  • Read your content                 │
+   │  • Update your content               │
+   │                                      │
+   │  [Cancel]            [Allow Access]  │
+   └──────────────────────────────────────┘
+   ↓
+5. User clicks [Allow Access]
+   ↓
+6. Gateway receives auth code → exchanges for access + refresh tokens
+   → stores in ~/.aai/tokens/<appId>.json
+   ↓
+7. Gateway sends API request with token in Authorization header
+   ↓
+8. SaaS app returns response → Gateway returns to Agent
+```
+
+### API Key / Bearer Token Flow
+
+```
+1. Agent calls a web tool
+   ↓
+2. Gateway reads API key from environment variable (defined in aai.json auth.env_var)
+   ↓
+3a. Key found → inject into request header/query
+3b. Key not found → return PERMISSION_DENIED error with instructions
+   ↓
+4. Send API request → return response to Agent
+```
+
+### Token Storage
+
+| Platform | Path |
+|----------|------|
+| macOS / Linux | `~/.aai/tokens/<appId>.json` |
+| Windows | `%USERPROFILE%\.aai\tokens\<appId>.json` |
+
+Token files contain:
+```json
+{
+  "access_token": "...",
+  "refresh_token": "...",
+  "expires_at": 1700000000,
+  "token_type": "Bearer"
+}
+```
+
+### Security Principles
+
+- **Gateway never stores client secrets in aai.json** -- secrets are stored separately in Gateway config
+- **Tokens are stored locally** in the user's home directory, not transmitted to Agent or LLM
+- **Agent only sees API responses**, never raw tokens
+- **Users can revoke access** at any time via the SaaS provider's settings or by deleting token files
+- **Scopes are explicitly declared** in aai.json so users know what access is requested
 
 ---
 
