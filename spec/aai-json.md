@@ -283,7 +283,7 @@ Each application supporting AAI provides `aai.json` in a unified AAI configurati
 | `platforms.ios.tools[].app_group_id` | string  | App Group ID (only used when `result_type=app_group`)                      |
 | `platforms.ios.tools[].timeout`      | integer | Timeout in seconds, default 10                                             |
 
-### Web / SaaS Specific Fields
+### Web App Specific Fields
 
 | Field | Type | Description |
 |-------|------|-------------|

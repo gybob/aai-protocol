@@ -1,9 +1,9 @@
 # Security Model
 
-AAI uses different security mechanisms for desktop apps and web/SaaS apps:
+AAI uses different security mechanisms for desktop apps and Web Apps:
 
 - **Desktop apps**: Operating system's native authorization (TCC, UAC, Polkit)
-- **Web/SaaS apps**: OAuth 2.0 / API Key authentication, managed by Gateway
+- **Web Apps**: OAuth 2.0 / API Key authentication, managed by Gateway
 
 ## Desktop App Authorization
 
@@ -60,9 +60,34 @@ AAI uses different security mechanisms for desktop apps and web/SaaS apps:
 6. Subsequent calls may still require confirmation (depends on app settings)
 ```
 
-## Web / SaaS App Authorization
+## Web App Authorization
 
-For web-based applications, Gateway handles OAuth 2.0 authentication or API key management.
+For Web Apps, Gateway handles OAuth 2.0 authentication or API key management.
+
+### User Confirmation (Domain & Certificate Verification)
+
+Before initiating any authentication flow for a Web App, Gateway **must** display domain and certificate information to the user:
+
+```
+1. Agent calls a Web App tool for the first time
+   ↓
+2. Gateway shows domain verification prompt:
+   ┌──────────────────────────────────────────────┐
+   │  AAI Gateway - Web App Authorization         │
+   │                                              │
+   │  Domain:       api.notion.com                │
+   │  SSL Cert:     ✅ Valid (issued by DigiCert) │
+   │  App Name:     Notion                        │
+   │  Permissions:  read_content, update_content  │
+   │                                              │
+   │  [Cancel]                    [Authorize]     │
+   └──────────────────────────────────────────────┘
+   ↓
+3a. User clicks [Cancel] → return AUTH_REQUIRED error
+3b. User clicks [Authorize] → proceed to OAuth or API Key flow
+```
+
+This ensures users are aware of which domain they are granting access to and can verify the SSL certificate is valid.
 
 ### OAuth 2.0 Authorization Flow
 
@@ -71,9 +96,9 @@ For web-based applications, Gateway handles OAuth 2.0 authentication or API key 
    ↓
 2. Gateway checks: does ~/.aai/tokens/com.notion.api.json exist?
    ↓
-3a. Token exists and valid → inject into request, proceed to step 7
-3b. Token exists but expired → auto-refresh via token_url, proceed to step 7
-3c. No token → start OAuth flow (step 4)
+3a. Token exists and valid → inject into request, proceed to step 8
+3b. Token exists but expired → auto-refresh via token_url, proceed to step 8
+3c. No token → user confirmation (see above), then start OAuth flow (step 4)
    ↓
 4. Gateway opens browser for user authorization:
    ┌──────────────────────────────────────┐
@@ -93,7 +118,7 @@ For web-based applications, Gateway handles OAuth 2.0 authentication or API key 
    ↓
 7. Gateway sends API request with token in Authorization header
    ↓
-8. SaaS app returns response → Gateway returns to Agent
+8. Web App returns response → Gateway returns to Agent
 ```
 
 ### API Key / Bearer Token Flow
@@ -131,7 +156,7 @@ Token files contain:
 - **Gateway never stores client secrets in aai.json** -- secrets are stored separately in Gateway config
 - **Tokens are stored locally** in the user's home directory, not transmitted to Agent or LLM
 - **Agent only sees API responses**, never raw tokens
-- **Users can revoke access** at any time via the SaaS provider's settings or by deleting token files
+- **Users can revoke access** at any time via the Web App provider's settings or by deleting token files
 - **Scopes are explicitly declared** in aai.json so users know what access is requested
 
 ---

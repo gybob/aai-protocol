@@ -1,16 +1,16 @@
-# Web / SaaS Applications (REST API)
+# Web App (REST API)
 
-AAI supports web-based and SaaS applications through REST API calls with OAuth 2.0 / API Key authentication. This makes thousands of cloud services (Notion, Slack, GitHub, Jira, Stripe, etc.) accessible to Agents.
+AAI supports Web Apps through REST API calls with OAuth 2.0 / API Key authentication. This makes thousands of cloud services (Notion, Slack, GitHub, Jira, Stripe, etc.) accessible to Agents.
 
-## Why Web/SaaS Support Matters
+## Why Web App Support Matters
 
-Desktop apps are only part of the picture. Modern productivity relies heavily on SaaS services, and most of them already have REST APIs. AAI bridges the gap:
+Desktop apps are only part of the picture. Modern productivity relies heavily on Web Apps, and most of them already have REST APIs. AAI bridges the gap:
 
-| SaaS App | Has REST API | LLM Knows It | With AAI |
+| Web App  | Has REST API | LLM Knows It | With AAI |
 |----------|-------------|-------------|----------|
 | Notion   | Yes         | Partially   | Full structured access |
 | Slack    | Yes         | Partially   | Full structured access |
-| Your SaaS| Yes         | No          | Fully discoverable |
+| Your App | Yes         | No          | Fully discoverable |
 
 ## Automation Mechanism
 
@@ -23,7 +23,7 @@ Desktop apps are only part of the picture. Modern productivity relies heavily on
 
 ### OAuth 2.0
 
-For SaaS apps that require user authorization (Notion, Slack, Google, etc.):
+For Web Apps that require user authorization (Notion, Slack, Google, etc.):
 
 ```json
 {
@@ -224,23 +224,98 @@ Gateway stores OAuth tokens securely at:
 
 Token files contain access token, refresh token, and expiry time. Gateway automatically refreshes expired tokens.
 
+## Discovery Mechanism
+
+Unlike desktop apps (which place `aai.json` in `~/.aai/`), Web Apps cannot write to the user's local filesystem. AAI solves this through the **AAI Registry**.
+
+### How It Works
+
+```
+1. Web App owner writes aai.json, hosts it on their domain
+   (e.g., https://api.notion.com/.well-known/aai.json)
+   ↓
+2. Owner submits the aai.json URL to AAI Registry (official website)
+   ↓
+3. AAI Registry stores the URL in its directory
+   ↓
+4. Gateway loads the registry on startup → fetches all registered aai.json descriptors
+   ↓
+5. Web App tools become available to Agents
+```
+
+### Registration
+
+Web App owners only need to submit one thing to the AAI Registry:
+
+- **The URL of their `aai.json` file**
+
+The AAI Registry fetches and indexes the descriptor. No domain verification or complex onboarding is required.
+
+### Security: User Confirmation Before Authorization
+
+When an Agent calls a Web App tool for the first time, Gateway **must** prompt the user before proceeding with OAuth or API access:
+
+```
+┌──────────────────────────────────────────────────────┐
+│  AAI Gateway - Web App Authorization                 │
+│                                                      │
+│  The Agent wants to access:                          │
+│                                                      │
+│  Domain:       api.notion.com                        │
+│  SSL Cert:     ✅ Valid (issued by DigiCert)         │
+│  App Name:     Notion                                │
+│  Permissions:  read_content, update_content          │
+│                                                      │
+│  Please verify this is the service you intend to     │
+│  access. Proceed with authorization?                 │
+│                                                      │
+│  [Cancel]                        [Authorize]         │
+└──────────────────────────────────────────────────────┘
+```
+
+The user sees:
+1. **Domain name** -- is this the service they expect?
+2. **SSL certificate status** -- is the certificate valid?
+3. **Requested permissions** -- what scopes will be granted?
+
+Only after the user confirms does Gateway proceed with OAuth authorization or API key injection.
+
+### Local Cache
+
+Gateway caches downloaded Web App descriptors locally at `~/.aai/web/<appId>/aai.json`. This ensures:
+- Offline access to previously loaded descriptors
+- Faster startup without re-fetching every time
+- Users can inspect and remove cached descriptors
+
+### Manual Install
+
+Users can also manually install Web App descriptors for private or internal APIs:
+
+```bash
+mkdir -p ~/.aai/com.internal.api
+# Place aai.json manually
+cp my-internal-api.aai.json ~/.aai/com.internal.api/aai.json
+```
+
+Manually installed descriptors work the same as desktop app descriptors and do not require registry registration.
+
 ## Integration Guide
 
-### For SaaS Providers
+### For Web App Providers
 
 1. Your app already has a REST API? **Zero backend changes needed.**
-2. Register an OAuth application (provide client_id/client_secret)
-3. Write `aai.json` describing your API endpoints as tools
-4. Place in `~/.aai/<appId>/aai.json`
+2. Write `aai.json` describing your API endpoints as tools
+3. Host `aai.json` on your domain (e.g., `https://api.yourapp.com/.well-known/aai.json`)
+4. Submit the URL to the AAI Registry
 5. Done -- any Agent can now discover and use your service
 
 ### For Community Contributors
 
-Most SaaS apps have public API documentation. You can write `aai.json` for any service:
+Most Web Apps have public API documentation. You can write `aai.json` for any service:
 
 1. Read the API docs (endpoints, parameters, authentication)
 2. Create `aai.json` with the REST API tools
-3. Share via the AAI community registry
+3. Host it or submit to the AAI Registry
 
 ---
 

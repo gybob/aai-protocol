@@ -16,6 +16,8 @@
 | **OAuth 2.0**   | 开放授权标准，用于授权 Web/SaaS 应用的访问                               |
 | **REST API**    | Representational State Transfer API，使用 HTTP 方法的标准 Web 服务接口    |
 | **SaaS**        | Software as a Service，通过 Web 浏览器或 API 访问的云端应用               |
+| **Web App**     | 基于 Web 的应用，具有 REST API，可通过 AAI 协议供 Agent 访问    |
+| **AAI Registry**| AAI 官方网站服务，维护已注册 Web 应用描述符的目录     |
 
 ---
 

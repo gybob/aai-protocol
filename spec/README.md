@@ -9,7 +9,7 @@ This directory contains the full technical specification for the AAI (Agent App 
 | [Overview](./overview.md) | Why AAI? Motivation, current limitations, and the dual-interface vision |
 | [Architecture](./architecture.md) | System architecture diagram, component responsibilities, key principles |
 | [aai.json Descriptor](./aai-json.md) | App description file format, file locations, structure, and all field descriptions |
-| [Security Model](./security.md) | Platform authorization flows (macOS TCC, Windows COM, Linux Polkit) |
+| [Security Model](./security.md) | Platform authorization flows (macOS TCC, Windows COM, Linux Polkit, Web App OAuth) |
 | [Progressive Discovery](./discovery.md) | 3-step skill discovery via MCP resource model (list, read, call) |
 | [Error Codes](./error-codes.md) | Standardized error response format and error code table |
 | [Call Flow](./call-flow.md) | Complete end-to-end call flow example |
@@ -22,7 +22,7 @@ This directory contains the full technical specification for the AAI (Agent App 
 | [macOS](./platforms/macos.md) | AppleScript / JXA automation, integration guide |
 | [Windows](./platforms/windows.md) | COM automation, integration guide |
 | [Linux](./platforms/linux.md) | DBus automation, integration guide |
-| [Web / SaaS](./platforms/web.md) | REST API + OAuth 2.0, SaaS integration guide |
+| [Web App](./platforms/web.md) | REST API + OAuth 2.0, Web App integration guide |
 
 ## Schema and Examples
 
@@ -30,4 +30,4 @@ This directory contains the full technical specification for the AAI (Agent App 
 |----------|-------------|
 | [aai.schema.json](../schema/aai.schema.json) | Machine-readable JSON Schema for aai.json validation |
 | [com.apple.mail.aai.json](../examples/com.apple.mail.aai.json) | Example: Apple Mail (desktop, multi-platform) |
-| [com.notion.api.aai.json](../examples/com.notion.api.aai.json) | Example: Notion (web/SaaS, OAuth + REST API) |
+| [com.notion.api.aai.json](../examples/com.notion.api.aai.json) | Example: Notion (Web App, OAuth + REST API) |

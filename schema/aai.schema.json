@@ -103,7 +103,7 @@
         },
         "web": {
           "type": "object",
-          "description": "Web / SaaS application via REST API",
+          "description": "Web App via REST API",
           "properties": {
             "automation": { "type": "string", "enum": ["restapi"] },
             "base_url": { "type": "string", "format": "uri", "description": "Base URL for all API calls" },
