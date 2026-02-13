@@ -10,6 +10,7 @@
 #   1. Copies spec/ (English)       -> aai-website/docs/spec/
 #   2. Copies spec/zh-CN/ (Chinese) -> aai-website/docs/zh-CN/spec/
 #   3. Copies schema/ and examples/ -> aai-website/docs/public/
+#   4. Adds VitePress frontmatter to each .md file
 #
 # The synced files are gitignored in aai-website.
 
@@ -18,6 +19,33 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROTOCOL_DIR="$(dirname "$SCRIPT_DIR")"
 WEBSITE_DIR="$(dirname "$PROTOCOL_DIR")/aai-website"
+
+add_frontmatter() {
+  local src_file="$1"
+  local dest_file="$2"
+  local title="$3"
+  
+  cat > "$dest_file" <<EOF
+---
+title: "$title"
+---
+
+EOF
+  cat "$src_file" >> "$dest_file"
+}
+
+extract_title() {
+  local file="$1"
+  local title=""
+  
+  title=$(grep '^# ' "$file" | head -1 | sed 's/^# //')
+  
+  if [ -z "$title" ]; then
+    title=$(basename "$file" .md | sed 's/-/ /g' | sed 's/\b\(.\)/\u\1/')
+  fi
+  
+  echo "$title"
+}
 
 # Verify directories exist
 if [ ! -d "$PROTOCOL_DIR/spec" ]; then
@@ -39,17 +67,25 @@ echo "→ Syncing English spec..."
 rm -rf "$WEBSITE_DIR/docs/spec"
 mkdir -p "$WEBSITE_DIR/docs/spec/platforms"
 
-# Copy all top-level spec files (excluding zh-CN directory)
 for f in "$PROTOCOL_DIR"/spec/*.md; do
-  cp "$f" "$WEBSITE_DIR/docs/spec/"
+  if [ -f "$f" ]; then
+    filename=$(basename "$f")
+    title=$(extract_title "$f")
+    add_frontmatter "$f" "$WEBSITE_DIR/docs/spec/$filename" "$title"
+  fi
 done
 
-# Copy platform files
 if [ -d "$PROTOCOL_DIR/spec/platforms" ]; then
-  cp "$PROTOCOL_DIR"/spec/platforms/*.md "$WEBSITE_DIR/docs/spec/platforms/"
+  for f in "$PROTOCOL_DIR"/spec/platforms/*.md; do
+    if [ -f "$f" ]; then
+      filename=$(basename "$f")
+      title=$(extract_title "$f")
+      add_frontmatter "$f" "$WEBSITE_DIR/docs/spec/platforms/$filename" "$title"
+    fi
+  done
 fi
 
-echo "  Copied $(find "$WEBSITE_DIR/docs/spec" -name '*.md' | wc -l | tr -d ' ') files"
+echo "  Processed $(find "$WEBSITE_DIR/docs/spec" -name '*.md' | wc -l | tr -d ' ') files"
 
 # ── 2. Sync Chinese spec ──────────────────────────────────────────────
 if [ -d "$PROTOCOL_DIR/spec/zh-CN" ]; then
@@ -58,14 +94,24 @@ if [ -d "$PROTOCOL_DIR/spec/zh-CN" ]; then
   mkdir -p "$WEBSITE_DIR/docs/zh-CN/spec/platforms"
 
   for f in "$PROTOCOL_DIR"/spec/zh-CN/*.md; do
-    [ -f "$f" ] && cp "$f" "$WEBSITE_DIR/docs/zh-CN/spec/"
+    if [ -f "$f" ]; then
+      filename=$(basename "$f")
+      title=$(extract_title "$f")
+      add_frontmatter "$f" "$WEBSITE_DIR/docs/zh-CN/spec/$filename" "$title"
+    fi
   done
 
   if [ -d "$PROTOCOL_DIR/spec/zh-CN/platforms" ]; then
-    cp "$PROTOCOL_DIR"/spec/zh-CN/platforms/*.md "$WEBSITE_DIR/docs/zh-CN/spec/platforms/"
+    for f in "$PROTOCOL_DIR"/spec/zh-CN/platforms/*.md; do
+      if [ -f "$f" ]; then
+        filename=$(basename "$f")
+        title=$(extract_title "$f")
+        add_frontmatter "$f" "$WEBSITE_DIR/docs/zh-CN/spec/platforms/$filename" "$title"
+      fi
+    done
   fi
 
-  echo "  Copied $(find "$WEBSITE_DIR/docs/zh-CN/spec" -name '*.md' | wc -l | tr -d ' ') files"
+  echo "  Processed $(find "$WEBSITE_DIR/docs/zh-CN/spec" -name '*.md' | wc -l | tr -d ' ') files"
 else
   echo "→ No Chinese spec found, skipping zh-CN sync"
 fi
