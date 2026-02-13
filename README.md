@@ -10,56 +10,11 @@
 
 ---
 
-## The AI Paradox: Two Events That Redefined the Software Landscape (Early 2026)
+## Background: The Agent-Software Paradox
 
-In January and February 2026, two events sent shockwaves through the technology industry:
+Early 2026 revealed a paradox: AI-driven market panic ($285B wiped in a day) vs. NVIDIA CEO Jensen Huang's rebuttal—"AI will use tools, not replace them."
 
-**January 30, 2026 — A $285 Billion Rout Triggered by AI**
-
-Anthropic released 11 industry-specific plugins for Claude Cowork—a tool that enables autonomous execution of multi-step workflows. One of these plugins could handle legal contract review, NDA triage, risk flagging, and compliance tracking.
-
-The market reaction was immediate and brutal:
-
-- **$285 billion wiped out in a single day**
-- **Over $1 trillion erased from software sector within the week**
-- Thomson Reuters plunged 15%+
-- LegalZoom dropped 20%+
-- Goldman Sachs' US software basket fell 6%—its worst day since April
-- The sell-off cascaded globally: US, Asia, India, Japan, Hong Kong
-
-Investors' fear: AI foundation models were no longer infrastructure—they were competing directly with software companies.
-
-**February 4, 2026 — NVIDIA CEO's Rebuttal**
-
-Five days later, at an AI conference hosted by Cisco Systems in San Francisco, NVIDIA CEO Jensen Huang addressed the panic head-on:
-
-> "There is a view that tools in the software industry are declining and will be replaced by artificial intelligence... This is the most illogical thing in the world. The truth will reveal itself."
-
-> "If you're human or AI—an artificial, general-purpose robot, would you use tools or reinvent tools? The answer is obviously to use tools... This is why the latest breakthroughs in AI are all about tool usage, because tool design is explicit."
-
-Huang's core thesis: **AI will work with existing software tools, not replace them.** The design intent is collaboration, not substitution.
-
----
-
-## The Key Insight
-
-These two events reveal a crucial truth:
-
-**The software industry will NOT be replaced by AI**—Jensen Huang is right. AI needs tools, needs data sources, needs structured capabilities.
-
-**BUT: Applications that cannot be accessed by AI Agents are at high risk of obsolescence.**
-
-Why? Because if an Agent cannot "use" your tool, it has to "reinvent" similar functionality—or choose an accessible alternative.
-
-**Current State:**
-
-| Application Type | Agent Accessibility | Risk |
-|----------------|-------------------|--------|
-| Well-known apps | ✅ Apple Mail, Outlook (in LLM training data) | Low |
-| APIs without standardized descriptors | ❌ Agents don't know your endpoints | **High** |
-| No automation at all | ❌ Agents cannot reach it | **Extreme** |
-
-This is the core value of the AAI Protocol: **bridging the gap between "having an interface" and "being Agent-accessible."**
+The truth lies in between: **AI needs software tools, but only those it can access.** Applications invisible to Agents face obsolescence—not because AI replaces software, but because Agents will choose accessible alternatives over undiscoverable ones.
 
 ---
 
