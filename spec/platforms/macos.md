@@ -1,76 +1,177 @@
-# macOS: AppleScript / JXA
+# Desktop: JSON Protocol over Apple Events
 
-## Automation Mechanism
+## Overview
 
-**AppleScript** is macOS's native scripting language, supported by almost all system applications and many third-party applications.
+AAI desktop apps on macOS communicate via a **JSON-based protocol** over Apple Events. This provides:
 
-**JXA (JavaScript for Automation)** is AppleScript's modern alternative using JavaScript syntax, more popular among developers.
+- Modern JSON message format
+- Native IPC performance via Apple Events
+- No AppleScript knowledge required
+- Type-safe communication
 
-**IPC Method: AppleEvents**
+## Architecture
 
-- AppleScript uses AppleEvents for inter-process communication underneath
-- This is macOS's native IPC mechanism with excellent performance
-
-## Examples
-
-### AppleScript
-
-```applescript
-tell application "Mail"
-    set newMessage to make new outgoing message with properties {subject:"Hello", content:"Hi Alice...", visible:false}
-    tell newMessage
-        make new to recipient at beginning of to recipients with properties {address:"alice@example.com"}
-        send
-    end tell
-end tell
+```
+┌─────────────────┐     Apple Events      ┌─────────────────┐
+│  AAI Gateway    │ ───────────────────── │  Desktop App    │
+│                 │     JSON Messages     │                 │
+│  JSON → AE      │                       │  AE → JSON      │
+└─────────────────┘                       └─────────────────┘
 ```
 
-### JXA (JavaScript for Automation)
+## Message Protocol
 
-```javascript
-const Mail = Application('Mail');
-Mail.activate();
-const msg = Mail.OutgoingMessage({
-  subject: 'Hello',
-  content: 'Hi Alice...',
-  visible: false,
-});
-Mail.outgoingMessages.push(msg);
-msg.toRecipients.push(Mail.Recipient({ address: 'alice@example.com' }));
-msg.send();
+### Request Format
+
+```json
+{
+  "version": "1.0",
+  "tool": "send_email",
+  "params": {
+    "to": ["alice@example.com"],
+    "subject": "Hello",
+    "body": "Hi Alice!"
+  },
+  "request_id": "req_123"
+}
 ```
 
-## Integration Guide
+### Response Format
 
-### Existing automation support
+```json
+{
+  "version": "1.0",
+  "request_id": "req_123",
+  "status": "success",
+  "result": {
+    "message_id": "msg_456"
+  }
+}
+```
 
-If the application already supports AppleScript or JXA, **zero code** is needed to integrate with AAI:
+### Error Response
 
-1. Write `aai.json` configuration file
-2. Place in `~/.aai/<appId>/aai.json`
-3. Done!
+```json
+{
+  "version": "1.0",
+  "request_id": "req_123",
+  "status": "error",
+  "error": {
+    "code": "INVALID_RECIPIENT",
+    "message": "Invalid email address"
+  }
+}
+```
 
-### No automation support
+## Apple Events Mapping
 
-If the application has no automation support, you need to:
+| Layer | Content |
+|-------|---------|
+| Event Class | `'aai '` (AAI protocol) |
+| Event ID | `'exec'` (execute tool) |
+| Direct Parameter | JSON request string |
+| Reply | JSON response string |
 
-1. Enable AppleScript in `Info.plist`:
-   ```xml
-   <key>NSAppleScriptEnabled</key>
-   <true/>
-   ```
-2. Implement script commands (Swift/ObjC) or leverage JXA
-3. Write `aai.json` configuration file
+## Implementation Guide
 
-## aai.json Fields
+### App Side: Register AAI Handler
 
-| Field                                   | Type    | Description                                                                       |
-| --------------------------------------- | ------- | --------------------------------------------------------------------------------- |
-| `platforms.macos.automation`            | string  | Automation type: `applescript` or `jxa`                                           |
-| `platforms.macos.tools[].script`        | string  | Script template, supports `${param}` placeholders                                 |
-| `platforms.macos.tools[].output_parser` | string  | Output parsing method: `result as text` (string), `result as record` (dictionary) |
-| `platforms.macos.tools[].timeout`       | integer | Timeout in seconds, default 30                                                    |
+Swift example:
+
+```swift
+// Register Apple Event handler
+NSAppleEventManager.shared().setEventHandler(
+    self,
+    andSelector: #selector(handleAAIEvent(_:withReplyEvent:)),
+    forEventClass: AEEventClass(kAAIEventClass),
+    andEventID: AEEventID(kAAIEventExecute)
+)
+
+@objc func handleAAIEvent(_ event: NSAppleEventDescriptor, 
+                          withReplyEvent replyEvent: NSAppleEventDescriptor) {
+    // Extract JSON request
+    guard let jsonStr = event.paramDescriptor(forKeyword: keyDirectObject)?.stringValue,
+          let data = jsonStr.data(using: .utf8),
+          let request = try? JSONDecoder().decode(AAIRequest.self, from: data) else {
+        sendError(replyEvent, "Invalid request format")
+        return
+    }
+    
+    // Execute tool
+    let result = executeTool(request.tool, params: request.params)
+    
+    // Send JSON response
+    let response = AAIResponse(requestId: request.requestId, result: result)
+    sendResponse(replyEvent, response)
+}
+```
+
+### Gateway Side: Send Apple Event
+
+```swift
+func callTool(appId: String, tool: String, params: [String: Any]) async throws -> [String: Any] {
+    let request: [String: Any] = [
+        "version": "1.0",
+        "tool": tool,
+        "params": params,
+        "request_id": UUID().uuidString
+    ]
+    
+    let jsonData = try JSONSerialization.data(withJSONObject: request)
+    guard let jsonStr = String(data: jsonData, encoding: .utf8) else {
+        throw AAIError.encodingFailed
+    }
+    
+    // Create and send Apple Event
+    let event = NSAppleEventDescriptor(
+        eventClass: AEEventClass(kAAIEventClass),
+        eventID: AEEventID(kAAIEventExecute),
+        targetDescriptor: NSAppleEventDescriptor(bundleIdentifier: appId)
+    )
+    event.setParam(NSAppleEventDescriptor(string: jsonStr), forKeyword: keyDirectObject)
+    
+    // Send and wait for reply
+    let reply = try event.sendEvent(timeout: 30)
+    
+    // Parse JSON response
+    guard let replyStr = reply.paramDescriptor(forKeyword: keyDirectObject)?.stringValue,
+          let replyData = replyStr.data(using: .utf8),
+          let response = try JSONSerialization.jsonObject(with: replyData) as? [String: Any] else {
+        throw AAIError.invalidResponse
+    }
+    
+    return response
+}
+```
+
+## Standard Error Codes
+
+| Code | Description |
+|------|-------------|
+| `INVALID_REQUEST` | Malformed JSON request |
+| `UNKNOWN_TOOL` | Tool not found in descriptor |
+| `INVALID_PARAMS` | Parameters don't match schema |
+| `PERMISSION_DENIED` | User denied access |
+| `INTERNAL_ERROR` | App-specific error |
+
+## Advantages Over AppleScript
+
+| Aspect | AppleScript | AAI JSON Protocol |
+|--------|-------------|-------------------|
+| Message format | Natural language | JSON |
+| Type safety | Weak | Strong (via schema) |
+| Learning curve | High | Low |
+| Error handling | String parsing | Structured errors |
+| Cross-language | Poor | Universal |
+
+## App Descriptor Location
+
+```
+~/.aai/<app_id>/aai.json
+```
+
+Example: `~/.aai/com.example.mail/aai.json`
 
 ---
 
-[Back to Spec Index](../README.md) | [Back to Platforms](./windows.md)
+[Back to Spec Index](../README.md) | [Web Platform](./web.md)

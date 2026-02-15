@@ -54,7 +54,6 @@ With AAI:
 | Your App's Situation | Without AAI | With AAI |
 |----------------------|-------------|----------|
 | Well-known desktop app (Mail, Outlook) | Agents already know it | Agents discover it formally |
-| Desktop app with automation, unknown to LLMs | **Agent can't find or use it** | Agent discovers and calls it |
 | Web App with REST API (Notion, your Web App) | **Agent doesn't know your endpoints** | Agent discovers API tools via aai.json |
 | No automation / no API at all | **Completely unreachable** | Add interface + `aai.json`, Agent-ready |
 
@@ -64,24 +63,25 @@ The key insight: **Having an API or automation support is not enough.** Without 
 
 Connect to any AAI-enabled app through standard MCP. No per-app custom code, no scraping documentation, no hardcoding commands. Works for both desktop apps and Web Apps.
 
-### Users -- Milliseconds, Not Seconds
+### Users -- Agent-Driven Productivity
 
-```
-GUI automation:  Screenshot → OCR → Click → Wait      (2-4 seconds per action)
-AAI:             MCP → Gateway → IPC/API → Done        (1-10 milliseconds)
-```
+With AAI, users delegate daily work to AI Agents instead of operating applications manually. Compared to traditional UI automation:
+
+- **Higher reliability**: Structured IPC/API calls are deterministic, unlike screenshot-based automation
+- **Faster execution**: Direct communication bypasses visual recognition and mouse simulation overhead
+- **Seamless integration**: Agents orchestrate multiple apps naturally, creating end-to-end workflows
 
 ## How It Works
 
 1. App provides `aai.json` describing its tools:
    - **Desktop apps** → placed in `~/.aai/<appId>/aai.json`
-   - **Web Apps** → hosted on their domain, registered to [AAI Registry](https://aai-protocol.com)
+   - **Web Apps** → hosted on their domain, registered to AAI Registry
 2. AAI Gateway discovers and loads all descriptors (local scan + registry fetch)
 3. Agent connects to Gateway via standard MCP (stdio)
 4. Agent discovers available apps and tools on demand
 5. Gateway executes the call:
-   - **Desktop apps** → platform-native automation (AppleScript / COM / DBus)
-   - **Web Apps** → REST API calls with OAuth 2.0 / API Key (Gateway handles auth, user confirms domain before first authorization)
+   - **Desktop apps** → platform-native IPC with JSON protocol
+   - **Web Apps** → REST API calls with OAuth 2.1
 
 Both humans (via GUI) and Agents (via AAI) access the same core application logic. Neither interferes with the other.
 
@@ -90,9 +90,7 @@ Both humans (via GUI) and Agents (via AAI) access the same core application logi
 | Resource | Description |
 |----------|-------------|
 | [Protocol Specification](./spec/README.md) | Full technical specification |
-| [aai.json Schema](./schema/aai.schema.json) | Machine-readable JSON Schema |
-| [Example: Apple Mail](./examples/com.apple.mail.aai.json) | Desktop app descriptor |
-| [Example: Notion](./examples/com.notion.api.aai.json) | Web App descriptor (OAuth + REST) |
+| [aai-protocol.org](https://aai-protocol.org) | Official website |
 | [AAI Gateway](https://github.com/gybob/aai-protocol) | Reference implementation |
 
 ## License

@@ -11,11 +11,49 @@ disable-model-invocation: false
 - 确保翻译后的文档与项目中文目录结构保持一致
 - 保持技术术语的准确性和一致性
 - 处理专业文档特有的格式和结构
+- **自动检测需要翻译或同步的文档**（无需询问用户）
 
 ## 何时使用我
 - 当项目中有新增的英文文档需要翻译为中文时
 - 当需要更新或完善现有中文文档的翻译质量时
 - 当需要确保新翻译的文档与项目中文文档风格保持一致时
+- 当用户说"翻译文档"时，**自动执行**，不要询问翻译哪个文件
+
+## 项目文档清单
+
+### 根目录
+| 英文文档 | 中文文档 | 状态 |
+|----------|----------|------|
+| `README.md` | `README.zh-CN.md` | ✅ 已翻译 |
+
+### spec/ 目录
+| 英文文档 | 中文文档 | 状态 |
+|----------|----------|------|
+| `spec/README.md` | `spec/zh-CN/README.md` | ✅ 已翻译 |
+| `spec/overview.md` | `spec/zh-CN/overview.md` | ✅ 已翻译 |
+| `spec/architecture.md` | `spec/zh-CN/architecture.md` | ✅ 已翻译 |
+| `spec/aai-json.md` | `spec/zh-CN/aai-json.md` | ✅ 已翻译 |
+| `spec/call-flow.md` | `spec/zh-CN/call-flow.md` | ✅ 已翻译 |
+| `spec/discovery.md` | `spec/zh-CN/discovery.md` | ✅ 已翻译 |
+| `spec/security.md` | `spec/zh-CN/security.md` | ✅ 已翻译 |
+| `spec/error-codes.md` | `spec/zh-CN/error-codes.md` | ✅ 已翻译 |
+| `spec/glossary.md` | `spec/zh-CN/glossary.md` | ✅ 已翻译 |
+
+### spec/platforms/ 目录
+| 英文文档 | 中文文档 | 状态 |
+|----------|----------|------|
+| `spec/platforms/web.md` | `spec/zh-CN/platforms/web.md` | ✅ 已翻译 |
+| `spec/platforms/macos.md` | `spec/zh-CN/platforms/macos.md` | ✅ 已翻译 |
+| `spec/platforms/linux.md` | `spec/zh-CN/platforms/linux.md` | ✅ 已翻译 |
+| `spec/platforms/windows.md` | `spec/zh-CN/platforms/windows.md` | ✅ 已翻译 |
+
+### 自动执行流程
+
+当收到"翻译文档"指令时：
+1. **扫描项目**：检查是否有新增英文文档
+2. **对比检测**：找出中文文档缺失或需要同步的文件
+3. **直接执行**：无需询问，直接开始翻译/同步工作
+4. **报告结果**：完成后告知翻译了哪些文件
 
 ## 翻译原则
 

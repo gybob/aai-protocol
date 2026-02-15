@@ -1,33 +1,26 @@
-# AAI Protocol Specification Index
+# AAI Protocol Specification
 
-This directory contains the full technical specification for the AAI (Agent App Interface) protocol.
+This directory contains the technical specification for the AAI (Agent App Interface) protocol.
 
-## Specification Documents
+## Core Documents
 
 | Document | Description |
 |----------|-------------|
-| [Overview](./overview.md) | Why AAI? Motivation, current limitations, and the dual-interface vision |
-| [Architecture](./architecture.md) | System architecture diagram, component responsibilities, key principles |
-| [aai.json Descriptor](./aai-json.md) | App description file format, file locations, structure, and all field descriptions |
-| [Security Model](./security.md) | Platform authorization flows (macOS TCC, Windows COM, Linux Polkit, Web App OAuth) |
-| [Progressive Discovery](./discovery.md) | 3-step skill discovery via MCP resource model (list, read, call) |
-| [Error Codes](./error-codes.md) | Standardized error response format and error code table |
-| [Call Flow](./call-flow.md) | Complete end-to-end call flow example |
-| [Glossary](./glossary.md) | Definitions of key terms |
+| [Architecture](./architecture.md) | System architecture and component responsibilities |
+| [aai.json Descriptor](./aai-json.md) | Descriptor format, JSON Schema based tool definitions |
+| [Security Model](./security.md) | Authorization flows for desktop and web apps |
+| [Progressive Skill Discovery](./discovery.md) | On-demand tool discovery via MCP |
 
-## Platform Guides
+## Platform Implementation Guides
 
 | Platform | Description |
 |----------|-------------|
-| [macOS](./platforms/macos.md) | AppleScript / JXA automation, integration guide |
-| [Windows](./platforms/windows.md) | COM automation, integration guide |
-| [Linux](./platforms/linux.md) | DBus automation, integration guide |
-| [Web App](./platforms/web.md) | REST API + OAuth 2.0, Web App integration guide |
+| [Desktop](./platforms/macos.md) | JSON-based IPC protocol on Apple Events |
+| [Web App](./platforms/web.md) | REST API + OAuth 2.1 integration |
 
-## Schema and Examples
+## Resources
 
 | Resource | Description |
 |----------|-------------|
-| [aai.schema.json](../schema/aai.schema.json) | Machine-readable JSON Schema for aai.json validation |
-| [com.apple.mail.aai.json](../examples/com.apple.mail.aai.json) | Example: Apple Mail (desktop, multi-platform) |
-| [com.notion.api.aai.json](../examples/com.notion.api.aai.json) | Example: Notion (Web App, OAuth + REST API) |
+| [aai.schema.json](../schema/aai.schema.json) | JSON Schema for descriptor validation |
+| [Examples](../examples/) | Sample descriptor files |

@@ -1,153 +1,156 @@
-# Progressive Skill Discovery (Avoiding Context Explosion)
+# Progressive Skill Discovery
 
-AAI implements on-demand loading through the MCP resource model.
+AAI implements on-demand loading through MCP resources to avoid context explosion.
 
-## Step 1: List Available Apps
+## The Problem
+
+Loading all app descriptors at once would flood the Agent's context:
+
+```
+50 apps × 10 tools × 500 tokens = 250,000 tokens
+```
+
+Progressive discovery solves this by loading only what's needed.
+
+## Discovery Flow
+
+### Step 1: List Available Apps
 
 ```json
-// Agent -> Gateway
+// Agent → Gateway
 {
   "jsonrpc": "2.0",
   "id": 1,
   "method": "resources/list"
 }
 
-// Gateway -> Agent
+// Gateway → Agent
 {
   "jsonrpc": "2.0",
   "id": 1,
   "result": {
     "resources": [
       {
-        "uri": "app:com.apple.mail",
+        "uri": "app:com.example.mail",
         "name": "Mail",
-        "description": "Apple's native email client",
-        "mimeType": "application/aai+json"
+        "description": "Email client"
       },
       {
-        "uri": "app:com.apple.calendar",
+        "uri": "app:com.example.calendar",
         "name": "Calendar",
-        "description": "Apple's calendar application",
-        "mimeType": "application/aai+json"
+        "description": "Calendar application"
       }
     ]
   }
 }
 ```
 
-## Step 2: Load Skill Details On Demand
+### Step 2: Load App Details On Demand
 
 ```json
-// Agent -> Gateway
+// Agent → Gateway
 {
   "jsonrpc": "2.0",
   "id": 2,
   "method": "resources/read",
   "params": {
-    "uri": "app:com.apple.mail"
+    "uri": "app:com.example.mail"
   }
 }
 
-// Gateway -> Agent
+// Gateway → Agent (returns full descriptor)
 {
   "jsonrpc": "2.0",
   "id": 2,
   "result": {
-    "contents": [
-      {
-        "uri": "app:com.apple.mail",
-        "mimeType": "application/json",
-        "text": "{\n  \"schema_version\": \"1.0\",\n  \"appId\": \"com.apple.mail\",\n  \"tools\": [...]\n}"
-      }
-    ]
+    "contents": [{
+      "uri": "app:com.example.mail",
+      "mimeType": "application/json",
+      "text": "{ \"tools\": [...] }"
+    }]
   }
 }
 ```
 
-## Step 3: Call Skill
+### Step 3: Call Tool
 
 ```json
-// Agent -> Gateway
+// Agent → Gateway
 {
   "jsonrpc": "2.0",
   "id": 3,
   "method": "tools/call",
   "params": {
-    "name": "com.apple.mail:send_email",
+    "name": "com.example.mail:send_email",
     "arguments": {
-      "to": "alice@example.com",
-      "subject": "Hello",
-      "body": "Hi Alice, ..."
+      "to": ["alice@example.com"],
+      "body": "Hello!"
     }
   }
 }
 
-// Gateway -> Agent
+// Gateway → Agent
 {
   "jsonrpc": "2.0",
   "id": 3,
   "result": {
-    "content": [
-      {
-        "type": "text",
-        "text": "Email sent successfully. Message ID: 12345"
-      }
-    ]
+    "content": [{
+      "type": "text",
+      "text": "Email sent. Message ID: msg_123"
+    }]
   }
 }
 ```
 
-**Advantage:** Only loads an application's tools when the user mentions it, greatly saving context.
+## Descriptor Sources
 
-## Web App Discovery
+### Desktop Apps
 
-Desktop apps are discovered by scanning `~/.aai/` on the local filesystem. Web Apps cannot write to the local filesystem, so they are discovered via the **AAI Registry**.
-
-### Discovery Flow
+Local filesystem discovery:
 
 ```
-Gateway Startup
-   ↓
-1. Scan ~/.aai/ for local desktop app descriptors
-   ↓
-2. Fetch Web App directory from AAI Registry
-   (registry returns list of aai.json URLs)
-   ↓
-3. Download each aai.json → cache locally at ~/.aai/web/<appId>/aai.json
-   ↓
-4. All apps (desktop + web) are now available via resources/list
+~/.aai/
+├── com.example.mail/
+│   └── aai.json
+└── com.example.calendar/
+    └── aai.json
 ```
 
-### Registry API
+Gateway scans this directory on startup.
 
-Gateway fetches the Web App directory from the AAI Registry on startup:
+### Web Apps
 
+Discovered via AAI Registry:
+
+```
+1. Gateway fetches app directory from registry
+2. Downloads each descriptor_url
+3. Caches locally at ~/.aai/web/<app_id>/aai.json
+```
+
+Registry API:
 ```json
-// Gateway -> AAI Registry
-GET https://registry.aai-protocol.com/api/v1/apps
+GET https://registry.aai-protocol.org/v1/apps
 
-// AAI Registry -> Gateway
 {
   "apps": [
     {
-      "appId": "com.notion.api",
+      "id": "com.notion.api",
       "name": "Notion",
       "descriptor_url": "https://api.notion.com/.well-known/aai.json"
-    },
-    {
-      "appId": "com.slack.api",
-      "name": "Slack",
-      "descriptor_url": "https://slack.com/.well-known/aai.json"
     }
   ]
 }
 ```
 
-Gateway then fetches each `descriptor_url` to load the full `aai.json`.
+## Benefits
 
-### First-Time Web App Access
+| Approach | Context Usage | Use Case |
+|----------|---------------|----------|
+| Load all | ~250k tokens | Never |
+| Progressive | ~5k per app | On demand |
 
-When an Agent calls a Web App tool for the first time, Gateway prompts the user to verify the domain and SSL certificate before proceeding with authorization. See [Security Model](./security.md) for details.
+Agent only loads descriptors when the user mentions an app.
 
 ---
 
