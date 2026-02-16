@@ -2,39 +2,28 @@
 
 ## Overview
 
-`aai.json` is a **platform-agnostic descriptor** that defines application capabilities using JSON Schema. It follows the same patterns as agent tool schemas, making it natural for LLMs to understand and use.
-
-## Design Philosophy
-
-1. **Abstract**: No platform-specific terminology
-2. **Schema-based**: Tool parameters use JSON Schema
-3. **Agent-friendly**: Mirrors MCP tool definition patterns
-4. **Extensible**: Supports custom metadata
+`aai.json` defines application capabilities using [JSON Schema](https://json-schema.org/). Each file describes a single platform deployment.
 
 ## Structure
 
 ```json
 {
   "schema_version": "1.0",
+  "platform": "web",
   "app": {
     "id": "com.example.app",
     "name": "Example App",
-    "description": "Brief description of the application",
+    "description": "Brief description",
     "version": "1.0.0"
   },
   "execution": {
     "type": "http",
     "base_url": "https://api.example.com/v1"
   },
-  "auth": { ... },
   "tools": [
     {
-      "name": "tool_name",
-      "description": "What this tool does",
-      "execution": {
-        "path": "/resource",
-        "method": "POST"
-      },
+      "name": "search",
+      "description": "Search for items",
       "parameters": {
         "type": "object",
         "properties": { ... },
@@ -51,27 +40,28 @@
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `schema_version` | string | Yes | Descriptor version (`"1.0"`) |
+| `schema_version` | string | Yes | Version (`"1.0"`) |
+| `platform` | string | Yes | Target platform: `desktop`, `web` |
 | `app` | object | Yes | Application metadata |
 | `execution` | object | No | Execution configuration |
-| `auth` | object | No | Authentication configuration |
-| `tools` | array | Yes | List of tool definitions |
+| `auth` | object | No | Authentication (see [Security Model](./security.md)) |
+| `tools` | array | Yes | Tool definitions |
 
 ### app Fields
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `id` | string | Yes | Unique identifier (reverse-DNS format) |
+| `id` | string | Yes | Reverse-DNS identifier |
 | `name` | string | Yes | Human-readable name |
 | `description` | string | Yes | Brief description |
 | `version` | string | No | Application version |
 
-### execution Fields (Root Level)
+### execution Fields
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `type` | string | Yes | Execution type: `ipc` or `http` |
-| `base_url` | string | Conditional | Base URL for HTTP execution |
+| `type` | string | Yes | `ipc` or `http` |
+| `base_url` | string | HTTP only | Base URL (http/https determined by URL) |
 | `default_headers` | object | No | Headers for all requests |
 
 ### tools[] Fields
@@ -80,59 +70,88 @@
 |-------|------|----------|-------------|
 | `name` | string | Yes | Tool identifier (snake_case) |
 | `description` | string | Yes | What the tool does |
-| `execution` | object | No | Tool-specific execution config |
 | `parameters` | object | Yes | JSON Schema for parameters |
 | `returns` | object | No | JSON Schema for return value |
+| `execution` | object | HTTP only | Tool-specific execution |
 
-### tools[].execution Fields
+### tools[].execution Fields (HTTP only)
 
-| Field | Type | Applicable To | Description |
-|-------|------|---------------|-------------|
-| `path` | string | HTTP | URL path (appended to base_url) |
-| `method` | string | HTTP | HTTP method: `GET`, `POST`, `PUT`, `DELETE` |
-| `headers` | object | HTTP | Additional headers for this tool |
-| `body_template` | object | HTTP | Request body template |
+| Field | Type | Description |
+|-------|------|-------------|
+| `path` | string | URL path |
+| `method` | string | HTTP method |
+| `headers` | object | Additional headers |
 
-## Execution Types
+## Parameter Schema
 
-### IPC (Inter-Process Communication)
-
-For desktop applications using native IPC:
+Tool `parameters` and `returns` follow [JSON Schema Draft-07](https://json-schema.org/draft-07/json-schema-release-notes.html).
 
 ```json
 {
-  "execution": {
-    "type": "ipc"
+  "name": "search",
+  "description": "Search for items",
+  "parameters": {
+    "$schema": "https://json-schema.org/draft-07/schema",
+    "type": "object",
+    "properties": {
+      "query": { "type": "string", "description": "Search query" },
+      "limit": { "type": "integer", "minimum": 1, "maximum": 100, "default": 10 }
+    },
+    "required": ["query"]
+  },
+  "returns": {
+    "type": "object",
+    "properties": {
+      "results": { "type": "array" }
+    }
   }
 }
 ```
 
-No additional configuration needed. The Gateway routes calls through the native IPC mechanism.
+## Platform Types
 
-### HTTP
+| Platform | Execution Type | Authorization |
+|----------|----------------|---------------|
+| `desktop` | `ipc` | Operating System |
+| `web` | `http` | Gateway (OAuth 2.1) |
 
-For web services:
+### Desktop Example
 
 ```json
 {
+  "schema_version": "1.0",
+  "platform": "desktop",
+  "app": {
+    "id": "com.example.mail",
+    "name": "Mail",
+    "description": "Email client"
+  },
+  "execution": { "type": "ipc" },
+  "tools": [ ... ]
+}
+```
+
+### Web Example
+
+```json
+{
+  "schema_version": "1.0",
+  "platform": "web",
+  "app": {
+    "id": "com.example.api",
+    "name": "Example API",
+    "description": "REST API service"
+  },
   "execution": {
     "type": "http",
     "base_url": "https://api.example.com/v1",
-    "default_headers": {
-      "Content-Type": "application/json"
-    }
+    "default_headers": { "Content-Type": "application/json" }
   },
+  "auth": { ... },
   "tools": [
     {
       "name": "search",
-      "execution": {
-        "path": "/search",
-        "method": "POST",
-        "body_template": {
-          "query": "${query}",
-          "limit": "${limit}"
-        }
-      },
+      "execution": { "path": "/search", "method": "POST" },
       "parameters": { ... }
     }
   ]
@@ -141,97 +160,7 @@ For web services:
 
 ## Authentication
 
-### OAuth 2.1
-
-```json
-{
-  "auth": {
-    "type": "oauth2",
-    "oauth2": {
-      "authorization_endpoint": "https://example.com/oauth/authorize",
-      "token_endpoint": "https://example.com/oauth/token",
-      "scopes": ["read", "write"],
-      "pkce": {
-        "method": "S256"
-      }
-    }
-  }
-}
-```
-
-### API Key
-
-```json
-{
-  "auth": {
-    "type": "api_key",
-    "api_key": {
-      "placement": "header",
-      "name": "X-API-Key",
-      "env_var": "AAI_EXAMPLE_KEY"
-    }
-  }
-}
-```
-
-## Tool Schema
-
-Tool parameters follow JSON Schema Draft-07:
-
-```json
-{
-  "name": "send_message",
-  "description": "Send a message to a recipient",
-  "parameters": {
-    "type": "object",
-    "properties": {
-      "to": {
-        "type": "string",
-        "description": "Recipient address",
-        "format": "email"
-      },
-      "subject": {
-        "type": "string",
-        "description": "Message subject"
-      },
-      "body": {
-        "type": "string",
-        "description": "Message content"
-      },
-      "priority": {
-        "type": "string",
-        "enum": ["low", "normal", "high"],
-        "default": "normal"
-      }
-    },
-    "required": ["to", "body"]
-  },
-  "returns": {
-    "type": "object",
-    "properties": {
-      "message_id": { "type": "string" },
-      "status": { "type": "string" }
-    }
-  }
-}
-```
-
-## Naming Conventions
-
-| Element | Convention | Example |
-|---------|------------|---------|
-| App ID | reverse-DNS | `com.example.app` |
-| Tool name | snake_case | `send_email`, `search_pages` |
-| Parameters | snake_case | `page_size`, `include_archived` |
-
-## Platform Binding
-
-The descriptor uses abstract execution types. Platform-specific details are handled by:
-
-1. **Gateway**: Maps abstract tool calls to platform execution
-2. **App**: Implements the protocol for its platform
-
-This separation allows the same descriptor structure to work across different deployment scenarios.
+See [Security Model](./security.md).
 
 ---
 

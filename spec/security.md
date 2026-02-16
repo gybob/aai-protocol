@@ -1,75 +1,157 @@
 # Security Model
 
-AAI uses different security mechanisms for desktop and web apps.
+## Authorization by Platform Type
 
-## Desktop Apps
+| Platform | Authorization Handler |
+|----------|----------------------|
+| Desktop App | Operating System |
+| Web App | Gateway (OAuth 2.1) |
 
-Desktop apps use the operating system's native authorization.
+## Desktop App Authorization
 
-### macOS: TCC (Transparency, Consent, and Control)
+Desktop apps rely on the operating system's native authorization. The Gateway does not participate in authorization decisions.
 
-```
-1. Agent requests to call an app
-   ↓
-2. Gateway executes via Apple Events
-   ↓
-3. macOS detects automation call
-   ↓
-4. System popup (first time):
-   ┌─────────────────────────────────────┐
-   │  "AAI Gateway" wants to control     │
-   │  "Mail"                             │
-   │                                     │
-   │  [Deny]               [OK]          │
-   └─────────────────────────────────────┘
-   ↓
-5. User approves → authorization recorded
-6. Subsequent calls don't require popup
-```
+When an Agent calls a desktop tool:
+1. Gateway sends request via native IPC
+2. OS detects the cross-process call
+3. OS prompts user (first time only)
+4. User approves/denies
+5. OS enforces the decision
 
-## Web Apps
+The specific mechanism varies by platform but is transparent to AAI.
 
-Web apps use OAuth 2.1 for authentication, managed entirely by Gateway.
+## Web App Authorization
 
-### OAuth 2.1 Authorization Flow
+### OAuth 2.1 Authorization Code + PKCE
 
 ```
-1. Agent calls a web tool
-   ↓
-2. Gateway checks for valid token
-   ├─ Valid token → proceed to step 8
-   ├─ Expired token → auto-refresh → proceed to step 8
-   └─ No token → start OAuth flow
-   ↓
-3. Gateway displays domain verification:
-   ┌──────────────────────────────────────────────┐
-   │  AAI Gateway - Authorization Required        │
-   │                                              │
-   │  Domain:       api.example.com               │
-   │  SSL Cert:     ✅ Valid                      │
-   │  Permissions:  read, write                   │
-   │                                              │
-   │  [Cancel]                    [Authorize]     │
-   └──────────────────────────────────────────────┘
-   ↓
-4. User authorizes → Gateway opens browser
-   ↓
-5. User grants permissions in browser
-   ↓
-6. Gateway receives auth code → exchanges for tokens
-   ↓
-7. Tokens stored securely
-   ↓
-8. API request sent with token
+┌─────────┐     ┌─────────┐     ┌─────────┐     ┌─────────┐
+│  Agent  │     │ Gateway │     │ Browser │     │   API   │
+└────┬────┘     └────┬────┘     └────┬────┘     └────┬────┘
+     │               │               │               │
+     │ tools/call    │               │               │
+     │──────────────>│               │               │
+     │               │               │               │
+     │               │ check token   │               │
+     │               │ (none/expired)│               │
+     │               │               │               │
+     │               │ show consent  │               │
+     │               │──────────────>│               │
+     │               │               │               │
+     │               │ user approves │               │
+     │               │<──────────────│               │
+     │               │               │               │
+     │               │ open browser  │               │
+     │               │──────────────>│               │
+     │               │               │               │
+     │               │               │ GET /authorize│
+     │               │               │──────────────>│
+     │               │               │               │
+     │               │               │ login + consent
+     │               │               │<──────────────│
+     │               │               │               │
+     │               │               │ redirect      │
+     │               │               │ with code     │
+     │               │               │──────────────>│
+     │               │               │               │
+     │               │ capture code  │               │
+     │               │<──────────────│               │
+     │               │               │               │
+     │               │ POST /token   │               │
+     │               │──────────────────────────────>│
+     │               │               │               │
+     │               │ access_token  │               │
+     │               │ refresh_token │               │
+     │               │ expires_in    │               │
+     │               │<──────────────────────────────│
+     │               │               │               │
+     │               │ store token   │               │
+     │               │               │               │
+     │               │ API request   │               │
+     │               │ Authorization:Bearer xxx      │
+     │               │──────────────────────────────>│
+     │               │               │               │
+     │               │ API response  │               │
+     │               │<──────────────────────────────│
+     │               │               │               │
+     │ tool result   │               │               │
+     │<──────────────│               │               │
+     │               │               │               │
+```
+
+### Authorization Endpoint
+
+**Request** (via browser redirect):
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `response_type` | string | Fixed: `code` |
+| `client_id` | string | Client identifier |
+| `redirect_uri` | string | Callback URL |
+| `scope` | string | Space-separated scopes |
+| `state` | string | CSRF token |
+| `code_challenge` | string | PKCE challenge (S256) |
+| `code_challenge_method` | string | Fixed: `S256` |
+
+**Response** (redirect back):
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `code` | string | Authorization code |
+| `state` | string | Must match request |
+
+### Token Endpoint
+
+**Request**:
+
+```http
+POST /oauth/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=authorization_code&
+code=<code>&
+redirect_uri=<uri>&
+code_verifier=<verifier>
+```
+
+**Response**:
+
+```json
+{
+  "access_token": "eyJhbG...",
+  "token_type": "Bearer",
+  "expires_in": 3600,
+  "refresh_token": "dGhpcyBpcy...",
+  "scope": "read write"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `access_token` | string | Token for API calls |
+| `token_type` | string | Fixed: `Bearer` |
+| `expires_in` | number | Token lifetime in seconds |
+| `refresh_token` | string | Token for refresh |
+| `scope` | string | Granted scopes |
+
+### Token Refresh
+
+When `access_token` expires, Gateway uses `refresh_token`:
+
+```http
+POST /oauth/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=refresh_token&
+refresh_token=<refresh_token>
 ```
 
 ### Token Storage
 
-| Platform | Path |
-|----------|------|
-| macOS | `~/.aai/tokens/<app_id>.json` |
+```
+~/.aai/tokens/<app_id>.json
+```
 
-Token file structure:
 ```json
 {
   "access_token": "...",
@@ -79,16 +161,32 @@ Token file structure:
 }
 ```
 
+### User Consent
+
+Before starting OAuth, Gateway displays:
+
+```
+┌──────────────────────────────────────────────┐
+│  AAI Gateway - Authorization Required        │
+│                                              │
+│  Domain:       api.example.com               │
+│  Permissions:  read, write                   │
+│                                              │
+│  [Cancel]                    [Authorize]     │
+└──────────────────────────────────────────────┘
+```
+
 ### API Key Authentication
 
-For services that don't use OAuth:
+For services without OAuth:
 
 ```json
 {
   "auth": {
     "type": "api_key",
-    "header": "X-API-Key",
-    "env_var": "AAI_MYAPP_KEY"
+    "placement": "header",
+    "name": "X-API-Key",
+    "env_var": "AAI_EXAMPLE_KEY"
   }
 }
 ```
@@ -99,11 +197,10 @@ Gateway reads the key from the environment variable.
 
 | Principle | Implementation |
 |-----------|----------------|
-| No secrets in descriptors | Client secrets stored separately in Gateway config |
-| Local token storage | Tokens never sent to Agent or LLM |
-| Agent isolation | Agent only sees API responses, not tokens |
-| User control | Users can revoke by deleting token files |
-| Explicit scopes | Scopes declared in descriptor for transparency |
+| No secrets in descriptors | Stored in Gateway config |
+| Local token storage | Never sent to Agent/LLM |
+| PKCE required | Prevents authorization code interception |
+| Token refresh | Automatic, transparent to user |
 
 ---
 

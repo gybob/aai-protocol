@@ -20,7 +20,7 @@ The truth lies in between: **AI needs software tools, but only those it can acce
 
 ## The Problem
 
-AI Agents (Claude, GPT, Cursor, etc.) can already operate well-known applications like Apple Mail or Microsoft Outlook -- because LLMs have seen their AppleScript/COM interfaces in training data.
+AI Agents (Claude, GPT, OpenClaw, etc.) can already operate well-known applications like Apple Mail or Microsoft Outlook -- because LLMs have seen their AppleScript/COM interfaces in training data.
 
 **But what about your app?**
 
@@ -80,8 +80,8 @@ With AAI, users delegate daily work to AI Agents instead of operating applicatio
 3. Agent connects to Gateway via standard MCP (stdio)
 4. Agent discovers available apps and tools on demand
 5. Gateway executes the call:
-   - **Desktop apps** → platform-native IPC with JSON protocol
-   - **Web Apps** → REST API calls with OAuth 2.1
+   - **Desktop apps** → JSON over native IPC, OS-managed authorization
+   - **Web Apps** → JSON over HTTP, Gateway-managed OAuth 2.1 authorization
 
 Both humans (via GUI) and Agents (via AAI) access the same core application logic. Neither interferes with the other.
 

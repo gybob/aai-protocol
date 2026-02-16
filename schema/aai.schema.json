@@ -2,14 +2,19 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://aai-protocol.org/schemas/aai.schema.json",
   "title": "AAI Descriptor",
-  "description": "Platform-agnostic descriptor for Agent App Interface",
+  "description": "Descriptor for Agent App Interface",
   "type": "object",
-  "required": ["schema_version", "app", "tools"],
+  "required": ["schema_version", "platform", "app", "tools"],
   "properties": {
     "schema_version": {
       "type": "string",
       "const": "1.0",
       "description": "Descriptor schema version"
+    },
+    "platform": {
+      "type": "string",
+      "enum": ["desktop", "web"],
+      "description": "Target platform"
     },
     "app": {
       "type": "object",
@@ -18,17 +23,17 @@
         "id": {
           "type": "string",
           "pattern": "^[a-z0-9]+(\\.[a-z0-9]+)+$",
-          "description": "Unique app identifier in reverse-DNS format"
+          "description": "Reverse-DNS identifier"
         },
         "name": {
           "type": "string",
           "minLength": 1,
-          "description": "Human-readable app name"
+          "description": "Human-readable name"
         },
         "description": {
           "type": "string",
           "minLength": 1,
-          "description": "Brief app description"
+          "description": "Brief description"
         },
         "version": {
           "type": "string",
@@ -48,12 +53,12 @@
         "base_url": {
           "type": "string",
           "format": "uri",
-          "description": "Base URL for HTTP execution"
+          "description": "Base URL (http/https)"
         },
         "default_headers": {
           "type": "object",
           "additionalProperties": { "type": "string" },
-          "description": "Default headers for HTTP requests"
+          "description": "Default headers"
         }
       }
     },
@@ -67,20 +72,28 @@
           "name": {
             "type": "string",
             "pattern": "^[a-z][a-z0-9_]*$",
-            "description": "Tool name in snake_case"
+            "description": "Tool name (snake_case)"
           },
           "description": {
             "type": "string",
             "minLength": 1,
             "description": "Tool description"
           },
+          "parameters": {
+            "$ref": "#/definitions/JSONSchema",
+            "description": "JSON Schema for parameters"
+          },
+          "returns": {
+            "$ref": "#/definitions/JSONSchema",
+            "description": "JSON Schema for return value"
+          },
           "execution": {
             "type": "object",
-            "description": "Tool-specific execution config",
+            "description": "Tool-specific execution (HTTP only)",
             "properties": {
               "path": {
                 "type": "string",
-                "description": "URL path (appended to base_url)"
+                "description": "URL path"
               },
               "method": {
                 "type": "string",
@@ -90,27 +103,16 @@
               "headers": {
                 "type": "object",
                 "additionalProperties": { "type": "string" },
-                "description": "Additional headers for this tool"
-              },
-              "body_template": {
-                "type": "object",
-                "description": "Request body template with ${param} placeholders"
+                "description": "Additional headers"
               }
             }
-          },
-          "parameters": {
-            "$ref": "#/definitions/JSONSchema",
-            "description": "JSON Schema for tool parameters"
-          },
-          "returns": {
-            "$ref": "#/definitions/JSONSchema",
-            "description": "JSON Schema for return value"
           }
         }
       }
     },
     "auth": {
       "type": "object",
+      "description": "Authentication configuration (see Security Model)",
       "properties": {
         "type": {
           "type": "string",
@@ -121,11 +123,6 @@
           "type": "object",
           "required": ["authorization_endpoint", "token_endpoint", "scopes"],
           "properties": {
-            "flow": {
-              "type": "string",
-              "enum": ["authorization_code"],
-              "default": "authorization_code"
-            },
             "authorization_endpoint": { "type": "string", "format": "uri" },
             "token_endpoint": { "type": "string", "format": "uri" },
             "scopes": {

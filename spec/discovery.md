@@ -1,6 +1,6 @@
-# Progressive Skill Discovery
+# Discovery
 
-AAI implements on-demand loading through MCP resources to avoid context explosion.
+AAI uses on-demand loading via MCP resources to avoid context explosion.
 
 ## The Problem
 
