@@ -16,6 +16,19 @@ Early 2026 revealed a paradox: AI-driven market panic ($285B wiped in a day) vs.
 
 The truth lies in between: **AI needs software tools, but only those it can access.** Applications invisible to Agents face obsolescence—not because AI replaces software, but because Agents will choose accessible alternatives over undiscoverable ones.
 
+### The Future of Applications
+
+Tomorrow's applications will serve two audiences:
+
+| Interface | Audience | Purpose |
+|-----------|----------|---------|
+| **GUI** | Humans | Visual interaction, discovery, enjoyment |
+| **AAI** | Agents | Programmatic access, automation, orchestration |
+
+Both interfaces access the same core logic. The GUI remains for humans who prefer visual interaction or need to explore. AAI enables Agents to operate apps on behalf of users—reliably, quickly, and at scale.
+
+This is not about replacing apps. It's about making every app accessible to the AI assistants that users increasingly rely on.
+
 ---
 
 ## The Problem
