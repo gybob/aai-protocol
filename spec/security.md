@@ -147,13 +147,29 @@ Gateway MUST display the following information:
 | **Deny** | Reject access, agent cannot use this tool |
 | **Remember** | Persist decision, don't ask again for this tool |
 
-## Consent Storage
+## Secure Storage
 
-Gateway stores user consent decisions:
+**CRITICAL**: All sensitive data must be stored securely using OS-provided credential storage. Never store tokens or consent data in plaintext.
 
-```
-~/.aai/consent.json
-```
+### Platform Storage APIs
+
+| Platform | API | Description |
+|----------|-----|-------------|
+| macOS | Keychain Services | `SecItemAdd`, `SecItemCopyMatching` |
+| Windows | Credential Manager | `CredWrite`, `CredRead` |
+| Linux | libsecret / gnome-keyring | `secret_password_store`, `secret_password_lookup` |
+
+### What to Store Securely
+
+| Data Type | Storage Method | Why |
+|-----------|----------------|-----|
+| OAuth tokens | Encrypted in OS keystore | Sensitive credentials |
+| Refresh tokens | Encrypted in OS keystore | Long-lived credential |
+| Consent decisions | Encrypted in OS keystore | User authorization state |
+
+### Data Format
+
+Data stored in keystore should be JSON-encoded then encrypted:
 
 ```json
 {
@@ -172,10 +188,6 @@ Gateway stores user consent decisions:
           "remember": true
         }
       }
-    },
-    "com.example.calendar": {
-      "all_tools": true,
-      "granted_at": "2026-02-19T10:00:00Z"
     }
   }
 }
@@ -189,6 +201,47 @@ Gateway stores user consent decisions:
 | `tools.<name>.granted` | boolean | Whether this tool is authorized |
 | `tools.<name>.granted_at` | string | When consent was granted |
 | `tools.<name>.remember` | boolean | Persist decision |
+
+### Implementation Example (macOS)
+
+```swift
+import Security
+
+func storeConsent(_ consent: Data, forAppId appId: String) throws {
+    let query: [String: Any] = [
+        kSecClass as String: kSecClassGenericPassword,
+        kSecAttrService as String: "aai-gateway",
+        kSecAttrAccount as String: "consent-\(appId)",
+        kSecValueData as String: consent
+    ]
+    
+    let status = SecItemAdd(query as CFDictionary, nil)
+    guard status == errSecSuccess else {
+        throw KeychainError.storeFailed
+    }
+}
+
+func loadConsent(forAppId appId: String) throws -> Data? {
+    let query: [String: Any] = [
+        kSecClass as String: kSecClassGenericPassword,
+        kSecAttrService as String: "aai-gateway",
+        kSecAttrAccount as String: "consent-\(appId)",
+        kSecReturnData as String: true
+    ]
+    
+    var result: AnyObject?
+    let status = SecItemCopyMatching(query as CFDictionary, &result)
+    
+    if status == errSecItemNotFound {
+        return nil
+    }
+    guard status == errSecSuccess else {
+        throw KeychainError.loadFailed
+    }
+    
+    return result as? Data
+}
+```
 
 ## App Authorization
 
@@ -351,9 +404,15 @@ refresh_token=<refresh_token>
 
 ### Token Storage
 
-```
-~/.aai/tokens/<app_id>.json
-```
+Tokens MUST be stored securely using OS keystore:
+
+| Platform | Storage Location |
+|----------|------------------|
+| macOS | Keychain (Service: `aai-gateway`, Account: `token-<app_id>`) |
+| Windows | Credential Manager (Target: `aai-gateway/token/<app_id>`) |
+| Linux | libsecret (Schema: `aai-gateway`, Attribute: `app_id`) |
+
+**Data Format** (stored encrypted):
 
 ```json
 {
@@ -363,6 +422,11 @@ refresh_token=<refresh_token>
   "token_type": "Bearer"
 }
 ```
+
+**NEVER**:
+- Store tokens in plaintext files
+- Log tokens to console or files
+- Transmit tokens over unencrypted connections
 
 ### Token Lifetime Recommendations
 
