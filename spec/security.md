@@ -5,41 +5,54 @@
 | Platform | Authorization Handler |
 |----------|----------------------|
 | Desktop App | Operating System |
-| Web App | Gateway (OAuth 2.1) |
+| Web App | Web App (via OAuth 2.1) |
 
 ## Desktop App Authorization
 
-Desktop apps rely on the operating system's native authorization. The Gateway does not participate in authorization decisions.
+Desktop apps rely on the operating system's native authorization. Gateway does not participate.
 
-When an Agent calls a desktop tool:
 1. Gateway sends request via native IPC
-2. OS detects the cross-process call
-3. OS prompts user (first time only)
-4. User approves/denies
-5. OS enforces the decision
-
-The specific mechanism varies by platform but is transparent to AAI.
+2. OS prompts user (first time only)
+3. User approves/denies
+4. OS enforces the decision
 
 ## Web App Authorization
 
-### OAuth 2.1 Authorization Code + PKCE
+Web apps handle authorization via OAuth 2.1. Gateway manages tokens but does not make authorization decisions—that's the Web App's responsibility.
+
+### Token Check Flow
+
+```
+Agent calls tool
+       ↓
+Gateway checks token store
+       ↓
+┌──────────────────┐
+│ Token valid?     │
+└────────┬─────────┘
+         │
+    ┌────┴────┐
+    ↓         ↓
+   Yes        No
+    │          │
+    │          ↓
+    │     Start OAuth
+    │          │
+    ↓          ↓
+Call API with token
+```
+
+### OAuth 2.1 Flow (when token missing/expired)
 
 ```
 ┌─────────┐     ┌─────────┐     ┌─────────┐     ┌─────────┐
-│  Agent  │     │ Gateway │     │ Browser │     │   API   │
+│  Agent  │     │ Gateway │     │ Browser │     │ Web App │
 └────┬────┘     └────┬────┘     └────┬────┘     └────┬────┘
      │               │               │               │
      │ tools/call    │               │               │
      │──────────────>│               │               │
      │               │               │               │
-     │               │ check token   │               │
-     │               │ (none/expired)│               │
-     │               │               │               │
-     │               │ show consent  │               │
-     │               │──────────────>│               │
-     │               │               │               │
-     │               │ user approves │               │
-     │               │<──────────────│               │
+     │               │ no valid token│               │
      │               │               │               │
      │               │ open browser  │               │
      │               │──────────────>│               │
@@ -47,11 +60,12 @@ The specific mechanism varies by platform but is transparent to AAI.
      │               │               │ GET /authorize│
      │               │               │──────────────>│
      │               │               │               │
-     │               │               │ login + consent
+     │               │               │   user login  │
+     │               │               │  + authorize  │
      │               │               │<──────────────│
      │               │               │               │
      │               │               │ redirect      │
-     │               │               │ with code     │
+     │               │               │ with auth code│
      │               │               │──────────────>│
      │               │               │               │
      │               │ capture code  │               │
@@ -67,8 +81,8 @@ The specific mechanism varies by platform but is transparent to AAI.
      │               │               │               │
      │               │ store token   │               │
      │               │               │               │
-     │               │ API request   │               │
-     │               │ Authorization:Bearer xxx      │
+     │               │ call API      │               │
+     │               │ with token    │               │
      │               │──────────────────────────────>│
      │               │               │               │
      │               │ API response  │               │
@@ -76,24 +90,23 @@ The specific mechanism varies by platform but is transparent to AAI.
      │               │               │               │
      │ tool result   │               │               │
      │<──────────────│               │               │
-     │               │               │               │
 ```
 
 ### Authorization Endpoint
 
-**Request** (via browser redirect):
+**Request** (browser redirect):
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `response_type` | string | Fixed: `code` |
+| `response_type` | string | `code` |
 | `client_id` | string | Client identifier |
 | `redirect_uri` | string | Callback URL |
 | `scope` | string | Space-separated scopes |
 | `state` | string | CSRF token |
-| `code_challenge` | string | PKCE challenge (S256) |
-| `code_challenge_method` | string | Fixed: `S256` |
+| `code_challenge` | string | PKCE challenge |
+| `code_challenge_method` | string | `S256` |
 
-**Response** (redirect back):
+**Response** (redirect):
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
@@ -129,14 +142,11 @@ code_verifier=<verifier>
 | Field | Type | Description |
 |-------|------|-------------|
 | `access_token` | string | Token for API calls |
-| `token_type` | string | Fixed: `Bearer` |
+| `token_type` | string | `Bearer` |
 | `expires_in` | number | Token lifetime in seconds |
 | `refresh_token` | string | Token for refresh |
-| `scope` | string | Granted scopes |
 
 ### Token Refresh
-
-When `access_token` expires, Gateway uses `refresh_token`:
 
 ```http
 POST /oauth/token
@@ -161,22 +171,7 @@ refresh_token=<refresh_token>
 }
 ```
 
-### User Consent
-
-Before starting OAuth, Gateway displays:
-
-```
-┌──────────────────────────────────────────────┐
-│  AAI Gateway - Authorization Required        │
-│                                              │
-│  Domain:       api.example.com               │
-│  Permissions:  read, write                   │
-│                                              │
-│  [Cancel]                    [Authorize]     │
-└──────────────────────────────────────────────┘
-```
-
-### API Key Authentication
+### API Key
 
 For services without OAuth:
 
@@ -190,17 +185,6 @@ For services without OAuth:
   }
 }
 ```
-
-Gateway reads the key from the environment variable.
-
-## Security Principles
-
-| Principle | Implementation |
-|-----------|----------------|
-| No secrets in descriptors | Stored in Gateway config |
-| Local token storage | Never sent to Agent/LLM |
-| PKCE required | Prevents authorization code interception |
-| Token refresh | Automatic, transparent to user |
 
 ---
 
