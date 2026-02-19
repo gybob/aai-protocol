@@ -2,46 +2,37 @@
 
 ## Architecture Overview
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                          LLM Agent                               │
-│                       (OpenClaw/Claude/etc)                      │
-└────────────────────────┬────────────────────────────────────────┘
-                          │ MCP over Stdio (JSON-RPC)
-                          ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                        AAI Gateway                               │
-│                   (Long-running MCP Server)                      │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │ MCP Interface                                              │  │
-│  │   - resources/list, resources/read                         │  │
-│  │   - tools/call                                             │  │
-│  ├───────────────────────────────────────────────────────────┤  │
-│  │ Descriptor Parser                                          │  │
-│  │   - JSON Schema validation                                 │  │
-│  │   - Tool schema extraction                                 │  │
-│  ├───────────────────────────────────────────────────────────┤  │
-│  │ Execution Layer                                            │  │
-│  │                                                            │  │
-│  │   Desktop Executor              Web Executor               │  │
-│  │   ┌─────────────────┐         ┌─────────────────┐        │  │
-│  │   │ JSON over IPC   │         │ JSON over HTTP  │        │  │
-│  │   │                 │         │                 │        │  │
-│  │   │ OS-managed      │         │ Gateway-managed │        │  │
-│  │   │ Authorization   │         │ OAuth 2.1       │        │  │
-│  │   └─────────────────┘         └─────────────────┘        │  │
-│  └───────────────────────────────────────────────────────────┘  │
-└─────────┬──────────────────────────────────┬────────────────────┘
-          │                                  │
-          │ Native IPC                       │ HTTP
-          │ (OS auth)                        │ (Gateway auth)
-          ↓                                  ↓
-┌──────────────────┐               ┌──────────────────────┐
-│   Desktop App    │               │      Web App         │
-│                  │               │                      │
-│  Native IPC      │               │  HTTP API            │
-│  + aai.json      │               │  + aai.json          │
-└──────────────────┘               └──────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Agent["LLM Agent"]
+        A1[OpenClaw / Claude / etc]
+    end
+
+    subgraph Gateway["AAI Gateway"]
+        G1["MCP Interface<br/>resources/list, resources/read<br/>tools/call"]
+        G2["Descriptor Parser<br/>JSON Schema validation"]
+        G3["Execution Layer"]
+        
+        subgraph G3["Execution Layer"]
+            E1["Desktop Executor<br/>JSON over IPC<br/>OS-managed auth"]
+            E2["Web Executor<br/>JSON over HTTP<br/>OAuth 2.1"]
+        end
+        
+        G1 --> G2 --> G3
+    end
+
+    subgraph Apps["Applications"]
+        D1["Desktop App<br/>Native IPC + aai.json"]
+        W1["Web App<br/>HTTP API + aai.json"]
+    end
+
+    Agent -->|"MCP over Stdio (JSON-RPC)"| G1
+    E1 -->|"Native IPC"| D1
+    E2 -->|"HTTP"| W1
+
+    style Agent fill:#e1f5fe
+    style Gateway fill:#fff3e0
+    style Apps fill:#e8f5e9
 ```
 
 ## Core Design Principles
