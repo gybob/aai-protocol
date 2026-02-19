@@ -11,15 +11,20 @@ flowchart TB
     subgraph Gateway["AAI Gateway"]
         G1["MCP Interface<br/>resources/list, resources/read<br/>tools/call"]
         G2["Descriptor Parser<br/>JSON Schema validation"]
-        G3["Execution Layer"]
+        G3["Consent Manager<br/>Per-tool authorization"]
+        G4["Execution Layer"]
         
-        subgraph G3["Execution Layer"]
+        subgraph G4["Execution Layer"]
             E1["macOS Executor<br/>JSON over Apple Events"]
             E2["Web Executor<br/>JSON over HTTP"]
             E3["..."]
         end
         
-        G1 --> G2 --> G3
+        G1 --> G2 --> G3 --> G4
+    end
+
+    subgraph User["User"]
+        U1["Consent UI"]
     end
 
     subgraph Apps["Applications"]
@@ -29,12 +34,15 @@ flowchart TB
     end
 
     Agent -->|"MCP over Stdio (JSON-RPC)"| G1
+    G3 -->|"Request consent"| U1
+    U1 -->|"Grant/Deny"| G3
     E1 -->|"Apple Events"| D1
     E2 -->|"HTTP"| W1
 
     style Agent fill:#e1f5fe
     style Gateway fill:#fff3e0
     style Apps fill:#e8f5e9
+    style User fill:#fce4ec
 ```
 
 ## Core Design Principles
@@ -43,19 +51,30 @@ flowchart TB
 
 `aai.json` is a **platform-agnostic descriptor** that defines capabilities using JSON Schema. See [aai.json Descriptor](./aai-json.md).
 
-### 2. Pluggable Executors
+### 2. Two-Layer Authorization
 
-Gateway uses platform-specific executors. Each executor handles transport and authorization:
+Gateway enforces authorization at two layers:
 
-| Platform | Transport | Authorization |
-|----------|-----------|---------------|
+| Layer | Handler | Purpose |
+|-------|---------|---------|
+| **User Consent** | Gateway | User authorizes which tools agent can use |
+| **App Authorization** | App or OS | User authorizes app to access their data |
+
+See [Security Model](./security.md) for details.
+
+### 3. Pluggable Executors
+
+Gateway uses platform-specific executors:
+
+| Platform | Transport | App Authorization |
+|----------|-----------|-------------------|
 | macOS | JSON over Apple Events | Operating System |
 | web | JSON over HTTP | OAuth 2.1 |
 | linux | JSON over IPC (TBD) | Operating System |
 | windows | JSON over IPC (TBD) | Operating System |
 | ... | ... | ... |
 
-### 3. Progressive Discovery
+### 4. Progressive Discovery
 
 Agents load tool definitions on-demand via MCP resources, avoiding context explosion.
 
@@ -64,7 +83,7 @@ Agents load tool definitions on-demand via MCP resources, avoiding context explo
 ```
 1. Agent → resources/list    → Gateway returns available apps
 2. Agent → resources/read    → Gateway returns app descriptor
-3. Agent → tools/call        → Gateway validates, executes, returns result
+3. Agent → tools/call        → Gateway checks consent → executes → returns result
 ```
 
 ## Separation of Concerns
@@ -72,7 +91,7 @@ Agents load tool definitions on-demand via MCP resources, avoiding context explo
 | Layer | Concern |
 |-------|---------|
 | **aai.json** | What the app can do (abstract) |
-| **Gateway** | How to call it (platform-specific executor) |
+| **Gateway** | User consent + How to call it (platform-specific) |
 | **App** | Execute the operation |
 
 ---

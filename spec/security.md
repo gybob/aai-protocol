@@ -1,26 +1,208 @@
 # Security Model
 
-## Authorization by Platform Type
+## Overview
 
-| Platform | Authorization Handler |
-|----------|----------------------|
-| Desktop App | Operating System |
-| Web App | Web App (via OAuth 2.1) |
+AAI Gateway implements a **two-layer authorization model**:
 
-## Desktop App Authorization
+| Layer | Purpose | Handler | Applies To |
+|-------|---------|---------|------------|
+| **User Consent** | User authorizes which tools the agent can use | Gateway | ALL platforms |
+| **App Authorization** | User authorizes app to access their data | App or OS | Per platform |
 
-Desktop apps rely on the operating system's native authorization. Gateway does not participate.
+**User Consent is required for ALL platforms** (macOS, web, linux, windows) to protect users from malicious apps exposing dangerous tools.
 
-1. Gateway sends request via native IPC
-2. OS prompts user (first time only)
-3. User approves/denies
-4. OS enforces the decision
+## Why User Consent?
 
-## Web App Authorization
+Without Gateway-level consent:
+- Malicious web app could expose `delete_all_files` tool
+- Agent would call it without user awareness
+- User's data destroyed
 
-Web apps handle authorization via OAuth 2.1. Gateway manages tokens but does not make authorization decisions—that's the Web App's responsibility.
+With Gateway-level consent:
+- Gateway shows: "App X wants to expose tool: `delete_all_files`"
+- Description: "Delete all files in user's home directory"
+- Parameters: `{ path: string }`
+- User must explicitly authorize before agent can call
 
-### Authorization Flow
+## User Consent Flow
+
+```mermaid
+sequenceDiagram
+    participant A as Agent
+    participant G as Gateway
+    participant U as User (Gateway UI)
+    
+    A->>G: tools/call (tool="send_email")
+    
+    Note over G: Check user consent for tool
+    
+    alt tool authorized
+        G->>G: Execute tool
+        G-->>A: tool result
+    else tool not authorized
+        G-->>A: error: CONSENT_REQUIRED
+        Note over A: Agent should inform user
+        A->>U: "I need permission to send emails"
+        U->>G: Open consent UI
+        G->>U: Show tool details
+        Note over U: User reviews and authorizes
+        U->>G: Grant consent
+        G->>G: Save consent
+        Note over A,G: Agent retries tool call
+        A->>G: tools/call (tool="send_email")
+        G->>G: Execute tool
+        G-->>A: tool result
+    end
+```
+
+### Consent Required Error
+
+When agent calls an unauthorized tool:
+
+```json
+{
+  "error": {
+    "code": "CONSENT_REQUIRED",
+    "message": "User consent required for tool",
+    "data": {
+      "app_id": "com.example.mail",
+      "app_name": "Example Mail",
+      "tool": "send_email",
+      "tool_description": "Send an email on behalf of the user",
+      "tool_parameters": {
+        "to": { "type": "array", "items": { "type": "string" }, "description": "Recipient email addresses" },
+        "subject": { "type": "string", "description": "Email subject line" },
+        "body": { "type": "string", "description": "Email body content" }
+      },
+      "consent_url": "aai://consent?app=com.example.mail&tool=send_email"
+    }
+  }
+}
+```
+
+Agent should present this information to user and guide them to authorize.
+
+## Consent UI Requirements
+
+Gateway MUST display the following information:
+
+### Required Information
+
+| Field | Source | Description |
+|-------|--------|-------------|
+| App Name | `app.name` | Which app is exposing this tool |
+| App ID | `app.id` | Unique identifier |
+| Tool Name | `tool.name` | Tool identifier |
+| Tool Description | `tool.description` | What the tool does |
+| Parameters | `tool.parameters` | What data agent can pass to tool |
+| Returns | `tool.returns` | What data tool returns (if sensitive) |
+
+### UI Example
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ ⚠️  Tool Authorization Request                              │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│ App: Example Mail (com.example.mail)                        │
+│                                                             │
+│ Agent requests permission to use:                           │
+│                                                             │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ send_email                                              │ │
+│ │                                                         │ │
+│ │ Send an email on behalf of the user                     │ │
+│ │                                                         │ │
+│ │ Parameters:                                             │ │
+│ │ • to: Recipient email addresses                         │ │
+│ │ • subject: Email subject line                           │ │
+│ │ • body: Email body content                              │ │
+│ │                                                         │ │
+│ │ ⚠️ Agent can send emails to anyone with any content     │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│ [Authorize Tool]  [Authorize All Tools]  [Deny]             │
+│                                                             │
+│ ☐ Remember this decision                                   │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### User Choices
+
+| Option | Behavior |
+|--------|----------|
+| **Authorize Tool** | Grant access to this specific tool only |
+| **Authorize All Tools** | Grant access to all tools from this app |
+| **Deny** | Reject access, agent cannot use this tool |
+| **Remember** | Persist decision, don't ask again for this tool |
+
+## Consent Storage
+
+Gateway stores user consent decisions:
+
+```
+~/.aai/consent.json
+```
+
+```json
+{
+  "consents": {
+    "com.example.mail": {
+      "all_tools": false,
+      "tools": {
+        "send_email": {
+          "granted": true,
+          "granted_at": "2026-02-19T10:00:00Z",
+          "remember": true
+        },
+        "delete_email": {
+          "granted": false,
+          "granted_at": "2026-02-19T10:00:00Z",
+          "remember": true
+        }
+      }
+    },
+    "com.example.calendar": {
+      "all_tools": true,
+      "granted_at": "2026-02-19T10:00:00Z"
+    }
+  }
+}
+```
+
+### Storage Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `all_tools` | boolean | User authorized all tools from this app |
+| `tools.<name>.granted` | boolean | Whether this tool is authorized |
+| `tools.<name>.granted_at` | string | When consent was granted |
+| `tools.<name>.remember` | boolean | Persist decision |
+
+## Platform-Specific Authorization
+
+After Gateway-level consent, platform-specific authorization applies:
+
+### Desktop (macOS)
+
+| Aspect | Handler |
+|--------|---------|
+| User Consent | Gateway (per-tool) |
+| App Authorization | Operating System |
+
+macOS prompts user when Gateway first calls the app via Apple Events. User approves once, OS remembers.
+
+### Web
+
+| Aspect | Handler |
+|--------|---------|
+| User Consent | Gateway (per-tool) |
+| App Authorization | Web App (OAuth 2.1) |
+
+After user consents at Gateway level, Gateway obtains OAuth token from Web App.
+
+### Authorization Flow (OAuth 2.1)
 
 Gateway checks token validity locally using `expires_at` timestamp—no API call needed.
 
