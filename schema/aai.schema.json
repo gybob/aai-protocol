@@ -112,11 +112,11 @@
     },
     "auth": {
       "type": "object",
-      "description": "Authentication configuration (see Security Model)",
+      "description": "OAuth 2.1 configuration (see Security Model)",
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["oauth2", "api_key", "none"],
+          "enum": ["oauth2", "none"],
           "default": "none"
         },
         "oauth2": {
@@ -139,18 +139,6 @@
                 }
               }
             }
-          }
-        },
-        "api_key": {
-          "type": "object",
-          "required": ["placement", "name", "env_var"],
-          "properties": {
-            "placement": {
-              "type": "string",
-              "enum": ["header", "query"]
-            },
-            "name": { "type": "string" },
-            "env_var": { "type": "string" }
           }
         }
       }

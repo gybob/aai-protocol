@@ -20,29 +20,9 @@ Desktop apps rely on the operating system's native authorization. Gateway does n
 
 Web apps handle authorization via OAuth 2.1. Gateway manages tokens but does not make authorization decisions—that's the Web App's responsibility.
 
-### Token Check Flow
+### Authorization Flow
 
-```
-Agent calls tool
-       ↓
-Gateway checks token store
-       ↓
-┌──────────────────┐
-│ Token valid?     │
-└────────┬─────────┘
-         │
-    ┌────┴────┐
-    ↓         ↓
-   Yes        No
-    │          │
-    │          ↓
-    │     Start OAuth
-    │          │
-    ↓          ↓
-Call API with token
-```
-
-### OAuth 2.1 Flow (when token missing/expired)
+Gateway checks token validity locally using `expires_at` timestamp—no API call needed.
 
 ```
 ┌─────────┐     ┌─────────┐     ┌─────────┐     ┌─────────┐
@@ -52,41 +32,63 @@ Call API with token
      │ tools/call    │               │               │
      │──────────────>│               │               │
      │               │               │               │
-     │               │ no valid token│               │
+     │               ╔═══════════════════════════════╗
+     │               ║ Check expires_at locally      ║
+     │               ╚═══════════════════════════════╝
      │               │               │               │
-     │               │ open browser  │               │
+     │               ┌───────────────────────────────┤
+     │               │ alt                           │
+     │               │                               │
+     │               ├─[access token not expired]────┤
+     │               │                               │
+     │               │   API request with token      │
+     │               │──────────────────────────────>│
+     │               │   API response                │
+     │               │<──────────────────────────────│
+     │               │                               │
+     │               ├─[access token expired]────────┤
+     │               │   [refresh token exists]      │
+     │               │                               │
+     │               │   POST /token (refresh)       │
+     │               │──────────────────────────────>│
+     │               │   new access + refresh tokens │
+     │               │<──────────────────────────────│
+     │               │                               │
+     │               │   API request with token      │
+     │               │──────────────────────────────>│
+     │               │   API response                │
+     │               │<──────────────────────────────│
+     │               │                               │
+     │               ├─[no tokens or refresh failed]─┤
+     │               │                               │
+     │               │   open browser                │
      │               │──────────────>│               │
      │               │               │               │
      │               │               │ GET /authorize│
      │               │               │──────────────>│
      │               │               │               │
-     │               │               │   user login  │
-     │               │               │  + authorize  │
+     │               │               │ user login    │
+     │               │               │ + authorize   │
      │               │               │<──────────────│
      │               │               │               │
      │               │               │ redirect      │
-     │               │               │ with auth code│
-     │               │               │──────────────>│
+     │               │               │ with code     │
+     │               │               │<──────────────│
      │               │               │               │
-     │               │ capture code  │               │
+     │               │   capture code│               │
      │               │<──────────────│               │
      │               │               │               │
-     │               │ POST /token   │               │
+     │               │   POST /token (auth code)     │
      │               │──────────────────────────────>│
-     │               │               │               │
-     │               │ access_token  │               │
-     │               │ refresh_token │               │
-     │               │ expires_in    │               │
+     │               │   access + refresh tokens     │
      │               │<──────────────────────────────│
-     │               │               │               │
-     │               │ store token   │               │
-     │               │               │               │
-     │               │ call API      │               │
-     │               │ with token    │               │
+     │               │                               │
+     │               │   API request with token      │
      │               │──────────────────────────────>│
-     │               │               │               │
-     │               │ API response  │               │
+     │               │   API response                │
      │               │<──────────────────────────────│
+     │               │                               │
+     │               └───────────────────────────────┤
      │               │               │               │
      │ tool result   │               │               │
      │<──────────────│               │               │
@@ -115,7 +117,7 @@ Call API with token
 
 ### Token Endpoint
 
-**Request**:
+**Request (authorization code)**:
 
 ```http
 POST /oauth/token
@@ -125,6 +127,16 @@ grant_type=authorization_code&
 code=<code>&
 redirect_uri=<uri>&
 code_verifier=<verifier>
+```
+
+**Request (refresh token)**:
+
+```http
+POST /oauth/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=refresh_token&
+refresh_token=<refresh_token>
 ```
 
 **Response**:
@@ -146,16 +158,6 @@ code_verifier=<verifier>
 | `expires_in` | number | Token lifetime in seconds |
 | `refresh_token` | string | Token for refresh |
 
-### Token Refresh
-
-```http
-POST /oauth/token
-Content-Type: application/x-www-form-urlencoded
-
-grant_type=refresh_token&
-refresh_token=<refresh_token>
-```
-
 ### Token Storage
 
 ```
@@ -171,20 +173,12 @@ refresh_token=<refresh_token>
 }
 ```
 
-### API Key
+### Token Lifetime Recommendations
 
-For services without OAuth:
-
-```json
-{
-  "auth": {
-    "type": "api_key",
-    "placement": "header",
-    "name": "X-API-Key",
-    "env_var": "AAI_EXAMPLE_KEY"
-  }
-}
-```
+| Token Type | Recommended |
+|------------|-------------|
+| Access Token | 1 hour |
+| Refresh Token | 7 days |
 
 ---
 
