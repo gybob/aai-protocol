@@ -27,9 +27,13 @@ Before implementing, understand the AAI protocol:
 
 ## Implementation Steps
 
+> **Note**: Code snippets below are simplified examples illustrating the protocol. Adapt them to your app's architecture, error handling, and coding style.
+
 ### 1. Register Apple Event Handler
 
 ```swift
+// EXAMPLE: Simplified Apple Event handler
+// Adapt error handling, logging, and architecture to your needs
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSAppleEventManager.shared().setEventHandler(
@@ -75,6 +79,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 ### 2. Define Request/Response Types
 
 ```swift
+// EXAMPLE: Basic type definitions
+// Use your preferred JSON handling approach (Codable, etc.)
 struct AAIRequest: Codable {
     let version: String
     let tool: String
@@ -193,6 +199,8 @@ Example: `~/.aai/com.yourcompany.yourapp/aai.json`
 Your app should create this file on first launch:
 
 ```swift
+// EXAMPLE: Descriptor installation
+// Consider: error handling, user consent, version updates
 func installAADescriptor() {
     let aaiDir = FileManager.default.homeDirectoryForCurrentUser
         .appendingPathComponent(".aai")

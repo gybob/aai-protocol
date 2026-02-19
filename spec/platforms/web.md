@@ -17,6 +17,8 @@ Before implementing, understand the AAI protocol:
 
 ## Implementation Steps
 
+> **Note**: Code snippets below are simplified examples illustrating the protocol. Adapt them to your app's architecture, framework, and coding style.
+
 ### 1. Implement OAuth 2.1 Endpoints
 
 #### Authorization Endpoint (`GET /oauth/authorize`)
@@ -83,7 +85,8 @@ refresh_token=def456
 Each tool maps to an HTTP endpoint:
 
 ```python
-# Flask example
+# EXAMPLE: Flask endpoint (illustrative)
+# Adapt to your framework (FastAPI, Express, etc.) and architecture
 @app.route("/v1/search", methods=["POST"])
 def search():
     # Validate Bearer token
@@ -203,6 +206,8 @@ Gateway automatically adds `Authorization` header with access token.
 Validate JWT or lookup token in your database:
 
 ```python
+# EXAMPLE: Token validation (illustrative)
+# Adapt to your auth system and security requirements
 def validate_token(token):
     # Option 1: JWT validation
     payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
