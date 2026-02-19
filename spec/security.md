@@ -24,74 +24,38 @@ Web apps handle authorization via OAuth 2.1. Gateway manages tokens but does not
 
 Gateway checks token validity locally using `expires_at` timestamp—no API call needed.
 
-```
-┌─────────┐     ┌─────────┐     ┌─────────┐     ┌─────────┐
-│  Agent  │     │ Gateway │     │ Browser │     │ Web App │
-└────┬────┘     └────┬────┘     └────┬────┘     └────┬────┘
-     │               │               │               │
-     │ tools/call    │               │               │
-     │──────────────>│               │               │
-     │               │               │               │
-     │               ╔═══════════════════════════════╗
-     │               ║ Check expires_at locally      ║
-     │               ╚═══════════════════════════════╝
-     │               │               │               │
-     │               ┌───────────────────────────────┤
-     │               │ alt                           │
-     │               │                               │
-     │               ├─[access token not expired]────┤
-     │               │                               │
-     │               │   API request with token      │
-     │               │──────────────────────────────>│
-     │               │   API response                │
-     │               │<──────────────────────────────│
-     │               │                               │
-     │               ├─[access token expired]────────┤
-     │               │   [refresh token exists]      │
-     │               │                               │
-     │               │   POST /token (refresh)       │
-     │               │──────────────────────────────>│
-     │               │   new access + refresh tokens │
-     │               │<──────────────────────────────│
-     │               │                               │
-     │               │   API request with token      │
-     │               │──────────────────────────────>│
-     │               │   API response                │
-     │               │<──────────────────────────────│
-     │               │                               │
-     │               ├─[no tokens or refresh failed]─┤
-     │               │                               │
-     │               │   open browser                │
-     │               │──────────────>│               │
-     │               │               │               │
-     │               │               │ GET /authorize│
-     │               │               │──────────────>│
-     │               │               │               │
-     │               │               │ user login    │
-     │               │               │ + authorize   │
-     │               │               │<──────────────│
-     │               │               │               │
-     │               │               │ redirect      │
-     │               │               │ with code     │
-     │               │               │<──────────────│
-     │               │               │               │
-     │               │   capture code│               │
-     │               │<──────────────│               │
-     │               │               │               │
-     │               │   POST /token (auth code)     │
-     │               │──────────────────────────────>│
-     │               │   access + refresh tokens     │
-     │               │<──────────────────────────────│
-     │               │                               │
-     │               │   API request with token      │
-     │               │──────────────────────────────>│
-     │               │   API response                │
-     │               │<──────────────────────────────│
-     │               │                               │
-     │               └───────────────────────────────┤
-     │               │               │               │
-     │ tool result   │               │               │
-     │<──────────────│               │               │
+```mermaid
+sequenceDiagram
+    participant A as Agent
+    participant G as Gateway
+    participant B as Browser
+    participant W as Web App
+
+    A->>G: tools/call
+
+    Note over G: Check expires_at locally
+
+    alt access token not expired
+        G->>W: API request with token
+        W-->>G: API response
+    else access token expired, refresh token exists
+        G->>W: POST /token (refresh)
+        W-->>G: new tokens
+        G->>W: API request with token
+        W-->>G: API response
+    else no tokens or refresh failed
+        G->>B: open browser
+        B->>W: GET /authorize
+        W-->>B: user login + authorize
+        Note over B,W: redirect with auth code
+        B->>G: callback with code
+        G->>W: POST /token (auth code)
+        W-->>G: access + refresh tokens
+        G->>W: API request with token
+        W-->>G: API response
+    end
+
+    G-->>A: tool result
 ```
 
 ### Authorization Endpoint
