@@ -9,16 +9,15 @@
 ```json
 {
   "schema_version": "1.0",
-  "platform": "web",
+  "version": "1.0.0",
+  "platform": "macos",
   "app": {
     "id": "com.example.app",
     "name": "Example App",
-    "description": "Brief description",
-    "version": "1.0.0"
+    "description": "Brief description"
   },
   "execution": {
-    "type": "http",
-    "base_url": "https://api.example.com/v1"
+    "type": "ipc"
   },
   "tools": [
     {
@@ -40,12 +39,22 @@
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `schema_version` | string | Yes | Version (`"1.0"`) |
-| `platform` | string | Yes | Target platform: `desktop`, `web` |
+| `schema_version` | string | Yes | AAI spec version (`"1.0"`) |
+| `version` | string | Yes | Descriptor version (semver) |
+| `platform` | string | Yes | Target platform |
 | `app` | object | Yes | Application metadata |
 | `execution` | object | No | Execution configuration |
-| `auth` | object | No | Authentication (see [Security Model](./security.md)) |
+| `auth` | object | No | OAuth 2.1 config (web only) |
 | `tools` | array | Yes | Tool definitions |
+
+### Platform Values
+
+| Platform | Execution Type | Authorization |
+|----------|----------------|---------------|
+| `macos` | `ipc` | Operating System |
+| `linux` | `ipc` | Operating System |
+| `windows` | `ipc` | Operating System |
+| `web` | `http` | OAuth 2.1 |
 
 ### app Fields
 
@@ -54,14 +63,13 @@
 | `id` | string | Yes | Reverse-DNS identifier |
 | `name` | string | Yes | Human-readable name |
 | `description` | string | Yes | Brief description |
-| `version` | string | No | Application version |
 
 ### execution Fields
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `type` | string | Yes | `ipc` or `http` |
-| `base_url` | string | HTTP only | Base URL (http/https determined by URL) |
+| `base_url` | string | web only | Base URL |
 | `default_headers` | object | No | Headers for all requests |
 
 ### tools[] Fields
@@ -72,9 +80,9 @@
 | `description` | string | Yes | What the tool does |
 | `parameters` | object | Yes | JSON Schema for parameters |
 | `returns` | object | No | JSON Schema for return value |
-| `execution` | object | HTTP only | Tool-specific execution |
+| `execution` | object | web only | Tool-specific HTTP config |
 
-### tools[].execution Fields (HTTP only)
+### tools[].execution Fields (web only)
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -91,36 +99,41 @@ Tool `parameters` and `returns` follow [JSON Schema Draft-07](https://json-schem
   "name": "search",
   "description": "Search for items",
   "parameters": {
-    "$schema": "https://json-schema.org/draft-07/schema",
     "type": "object",
     "properties": {
       "query": { "type": "string", "description": "Search query" },
       "limit": { "type": "integer", "minimum": 1, "maximum": 100, "default": 10 }
     },
     "required": ["query"]
-  },
-  "returns": {
-    "type": "object",
-    "properties": {
-      "results": { "type": "array" }
-    }
   }
 }
 ```
 
-## Platform Types
+## Version Specification
 
-| Platform | Execution Type | Authorization |
-|----------|----------------|---------------|
-| `desktop` | `ipc` | Operating System |
-| `web` | `http` | Gateway (OAuth 2.1) |
+The `version` field follows [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH`
 
-### Desktop Example
+| Change Type | Version Bump | Examples |
+|-------------|--------------|----------|
+| Add new tool | MINOR | `1.0.0` → `1.1.0` |
+| Add optional parameter | MINOR | `1.0.0` → `1.1.0` |
+| Add tool description | PATCH | `1.0.0` → `1.0.1` |
+| Remove tool | MAJOR | `1.0.0` → `2.0.0` |
+| Add required parameter | MAJOR | `1.0.0` → `2.0.0` |
+| Rename tool | MAJOR | `1.0.0` → `2.0.0` |
+| Change parameter type | MAJOR | `1.0.0` → `2.0.0` |
+
+**Rule of thumb**: If existing Agents might break, bump MAJOR. Otherwise, MINOR for new features, PATCH for fixes.
+
+## Examples
+
+### Desktop (macOS)
 
 ```json
 {
   "schema_version": "1.0",
-  "platform": "desktop",
+  "version": "1.0.0",
+  "platform": "macos",
   "app": {
     "id": "com.example.mail",
     "name": "Mail",
@@ -131,11 +144,12 @@ Tool `parameters` and `returns` follow [JSON Schema Draft-07](https://json-schem
 }
 ```
 
-### Web Example
+### Web
 
 ```json
 {
   "schema_version": "1.0",
+  "version": "1.0.0",
   "platform": "web",
   "app": {
     "id": "com.example.api",
@@ -147,7 +161,15 @@ Tool `parameters` and `returns` follow [JSON Schema Draft-07](https://json-schem
     "base_url": "https://api.example.com/v1",
     "default_headers": { "Content-Type": "application/json" }
   },
-  "auth": { ... },
+  "auth": {
+    "type": "oauth2",
+    "oauth2": {
+      "authorization_endpoint": "https://example.com/oauth/authorize",
+      "token_endpoint": "https://example.com/oauth/token",
+      "scopes": ["read", "write"],
+      "pkce": { "method": "S256" }
+    }
+  },
   "tools": [
     {
       "name": "search",
@@ -158,9 +180,9 @@ Tool `parameters` and `returns` follow [JSON Schema Draft-07](https://json-schem
 }
 ```
 
-## Authentication
+## Authentication (web only)
 
-See [Security Model](./security.md).
+See [Security Model](./security.md) for OAuth 2.1 configuration.
 
 ---
 
