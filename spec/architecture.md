@@ -53,12 +53,12 @@ flowchart TB
 
 ### 2. Two-Layer Authorization
 
-Gateway enforces authorization at two layers:
+Both layers authorize agent to access app, but protect different parties:
 
-| Layer | Handler | Purpose |
-|-------|---------|---------|
-| **User Consent** | Gateway | User authorizes which tools agent can use |
-| **App Authorization** | App or OS | User authorizes app to access their data |
+| Layer | Initiated By | Protects |
+|-------|--------------|----------|
+| **Gateway Consent** | Gateway | User from malicious apps |
+| **App Authorization** | App or OS | App data from unauthorized agents |
 
 See [Security Model](./security.md) for details.
 

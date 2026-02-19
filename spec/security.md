@@ -2,29 +2,41 @@
 
 ## Overview
 
-AAI Gateway implements a **two-layer authorization model**:
+Both authorization layers are about **user authorizing agent to access an app**, but with different protection goals:
 
-| Layer | Purpose | Handler | Applies To |
-|-------|---------|---------|------------|
-| **User Consent** | User authorizes which tools the agent can use | Gateway | ALL platforms |
-| **App Authorization** | User authorizes app to access their data | App or OS | Per platform |
+| Layer | Initiated By | Protects Against |
+|-------|--------------|------------------|
+| **Gateway Consent** | Gateway | Malicious apps exposing dangerous tools to user |
+| **App Authorization** | App or OS | Agent accessing app data without user's knowledge |
 
-**User Consent is required for ALL platforms** (macOS, web, linux, windows) to protect users from malicious apps exposing dangerous tools.
+**Gateway Consent is required for ALL platforms** (macOS, web, linux, windows).
 
-## Why User Consent?
+## Why Two Layers?
 
-Without Gateway-level consent:
+### Gateway Consent (Protects User from Malicious Apps)
+
+Without Gateway consent:
 - Malicious web app could expose `delete_all_files` tool
 - Agent would call it without user awareness
 - User's data destroyed
 
-With Gateway-level consent:
+With Gateway consent:
 - Gateway shows: "App X wants to expose tool: `delete_all_files`"
 - Description: "Delete all files in user's home directory"
-- Parameters: `{ path: string }`
 - User must explicitly authorize before agent can call
 
-## User Consent Flow
+### App Authorization (Protects App Data from Unauthorized Agent Access)
+
+Without App authorization:
+- Agent could access user's email without app's knowledge
+- User might not realize agent has full access to their data
+
+With App authorization:
+- Web app shows: "Agent X requests access to: send_email, read_inbox"
+- User confirms they trust this agent
+- App knows which operations are authorized
+
+## Gateway Consent Flow
 
 ```mermaid
 sequenceDiagram
@@ -34,11 +46,10 @@ sequenceDiagram
     
     A->>G: tools/call (tool="send_email")
     
-    Note over G: Check user consent for tool
+    Note over G: Check gateway consent for tool
     
-    alt tool authorized
-        G->>G: Execute tool
-        G-->>A: tool result
+    alt tool authorized at gateway
+        Note over G: Proceed to app authorization
     else tool not authorized
         G-->>A: error: CONSENT_REQUIRED
         Note over A: Agent should inform user
@@ -48,11 +59,10 @@ sequenceDiagram
         Note over U: User reviews and authorizes
         U->>G: Grant consent
         G->>G: Save consent
-        Note over A,G: Agent retries tool call
-        A->>G: tools/call (tool="send_email")
-        G->>G: Execute tool
-        G-->>A: tool result
+        Note over G: Proceed to app authorization
     end
+    
+    Note over G: Continue with app authorization...
 ```
 
 ### Consent Required Error
@@ -82,7 +92,7 @@ When agent calls an unauthorized tool:
 
 Agent should present this information to user and guide them to authorize.
 
-## Consent UI Requirements
+## Gateway Consent UI Requirements
 
 Gateway MUST display the following information:
 
@@ -180,31 +190,29 @@ Gateway stores user consent decisions:
 | `tools.<name>.granted_at` | string | When consent was granted |
 | `tools.<name>.remember` | boolean | Persist decision |
 
-## Platform-Specific Authorization
+## App Authorization
 
-After Gateway-level consent, platform-specific authorization applies:
+After Gateway consent, the app (or OS) requires its own authorization. This protects app data from unauthorized agent access.
 
 ### Desktop (macOS)
 
-| Aspect | Handler |
-|--------|---------|
-| User Consent | Gateway (per-tool) |
-| App Authorization | Operating System |
+| Layer | Protects |
+|-------|----------|
+| Gateway Consent | User from malicious apps |
+| OS Authorization | App data from unauthorized agents |
 
 macOS prompts user when Gateway first calls the app via Apple Events. User approves once, OS remembers.
 
-### Web
+### Web (OAuth 2.1)
 
-| Aspect | Handler |
-|--------|---------|
-| User Consent | Gateway (per-tool) |
-| App Authorization | Web App (OAuth 2.1) |
+| Layer | Protects |
+|-------|----------|
+| Gateway Consent | User from malicious apps |
+| App Authorization | App data from unauthorized agents |
 
-After user consents at Gateway level, Gateway obtains OAuth token from Web App.
+**Key**: Gateway passes authorized tools to web app via `aai_tools` parameter. Web app displays this list for user confirmation—no need to implement its own tool-level consent.
 
-### Authorization Flow (OAuth 2.1)
-
-Gateway checks token validity locally using `expires_at` timestamp—no API call needed.
+#### Authorization Flow
 
 ```mermaid
 sequenceDiagram
@@ -212,35 +220,38 @@ sequenceDiagram
     participant G as Gateway
     participant B as Browser
     participant W as Web App
-
+    
     A->>G: tools/call
-
-    Note over G: Check expires_at locally
-
-    alt access token not expired
+    
+    Note over G: 1. Check gateway consent (passed)
+    Note over G: 2. Check token validity
+    
+    alt access token valid
         G->>W: API request with token
         W-->>G: API response
-    else access token expired, refresh token exists
+    else token expired, refresh exists
         G->>W: POST /token (refresh)
         W-->>G: new tokens
         G->>W: API request with token
         W-->>G: API response
-    else no tokens or refresh failed
-        G->>B: open browser
-        B->>W: GET /authorize
-        W-->>B: user login + authorize
-        Note over B,W: redirect with auth code
+    else no token
+        G->>B: open browser with aai_tools
+        Note over G: aai_tools = ["send_email", "read_inbox"]
+        B->>W: GET /authorize?aai_tools=...
+        W->>B: show authorized tools for confirmation
+        Note over W: User confirms tool access
+        W-->>B: redirect with auth code
         B->>G: callback with code
         G->>W: POST /token (auth code)
         W-->>G: access + refresh tokens
         G->>W: API request with token
         W-->>G: API response
     end
-
+    
     G-->>A: tool result
 ```
 
-### Authorization Endpoint
+#### Authorization Endpoint
 
 **Request** (browser redirect):
 
@@ -253,6 +264,40 @@ sequenceDiagram
 | `state` | string | CSRF token |
 | `code_challenge` | string | PKCE challenge |
 | `code_challenge_method` | string | `S256` |
+| `aai_tools` | string | Comma-separated list of tools user authorized at Gateway |
+
+Example:
+```
+GET /authorize?
+  response_type=code&
+  client_id=aai-gateway&
+  redirect_uri=http://localhost:3000/callback&
+  scope=read%20write&
+  state=xyz&
+  code_challenge=...&
+  code_challenge_method=S256&
+  aai_tools=send_email,read_inbox,list_contacts
+```
+
+**Web App UI**: Display `aai_tools` as a list for user confirmation:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Authorize AAI Gateway                                       │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│ This agent has been authorized to use:                      │
+│                                                             │
+│ ✓ send_email - Send emails on your behalf                   │
+│ ✓ read_inbox - Read your inbox                              │
+│ ✓ list_contacts - Access your contact list                  │
+│                                                             │
+│ Do you want to allow this agent to access your account?     │
+│                                                             │
+│ [Allow]  [Deny]                                             │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
 
 **Response** (redirect):
 
@@ -261,7 +306,7 @@ sequenceDiagram
 | `code` | string | Authorization code |
 | `state` | string | Must match request |
 
-### Token Endpoint
+#### Token Endpoint
 
 **Request (authorization code)**:
 
