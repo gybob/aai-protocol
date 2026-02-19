@@ -14,20 +14,22 @@ flowchart TB
         G3["Execution Layer"]
         
         subgraph G3["Execution Layer"]
-            E1["Desktop Executor<br/>JSON over IPC<br/>OS-managed auth"]
-            E2["Web Executor<br/>JSON over HTTP<br/>OAuth 2.1"]
+            E1["macOS Executor<br/>JSON over IPC"]
+            E2["Web Executor<br/>JSON over HTTP"]
+            E3["..."]
         end
         
         G1 --> G2 --> G3
     end
 
     subgraph Apps["Applications"]
-        D1["Desktop App<br/>Native IPC + aai.json"]
+        D1["macOS App<br/>Native IPC + aai.json"]
         W1["Web App<br/>HTTP API + aai.json"]
+        X1["..."]
     end
 
     Agent -->|"MCP over Stdio (JSON-RPC)"| G1
-    E1 -->|"Native IPC"| D1
+    E1 -->|"IPC"| D1
     E2 -->|"HTTP"| W1
 
     style Agent fill:#e1f5fe
@@ -41,12 +43,17 @@ flowchart TB
 
 `aai.json` is a **platform-agnostic descriptor** that defines capabilities using JSON Schema. See [aai.json Descriptor](./aai-json.md).
 
-### 2. Gateway Translates to Platform Execution
+### 2. Pluggable Executors
+
+Gateway uses platform-specific executors. Each executor handles transport and authorization:
 
 | Platform | Transport | Authorization |
 |----------|-----------|---------------|
-| Desktop | JSON over native IPC | Operating System |
-| Web | JSON over HTTP | Gateway (OAuth 2.1) |
+| macOS | JSON over IPC | Operating System |
+| web | JSON over HTTP | OAuth 2.1 |
+| linux | JSON over IPC | Operating System |
+| windows | JSON over IPC | Operating System |
+| ... | ... | ... |
 
 ### 3. Progressive Discovery
 
@@ -65,7 +72,7 @@ Agents load tool definitions on-demand via MCP resources, avoiding context explo
 | Layer | Concern |
 |-------|---------|
 | **aai.json** | What the app can do (abstract) |
-| **Gateway** | How to call it (platform-specific) |
+| **Gateway** | How to call it (platform-specific executor) |
 | **App** | Execute the operation |
 
 ---
