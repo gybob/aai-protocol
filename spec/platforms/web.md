@@ -4,6 +4,17 @@
 
 Web apps expose HTTP APIs with OAuth 2.1 authorization. Gateway handles token management; your app validates tokens and serves API requests.
 
+## Prerequisites
+
+Before implementing, understand the AAI protocol:
+
+| Resource | Description |
+|----------|-------------|
+| [AAI Protocol Overview](../../README.md) | What is AAI and why it matters |
+| [Protocol Specification](../README.md) | Full spec index |
+| [aai.json Descriptor](../aai-json.md) | Descriptor format |
+| [Security Model](../security.md) | OAuth 2.1 flow details |
+
 ## Implementation Steps
 
 ### 1. Implement OAuth 2.1 Endpoints

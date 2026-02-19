@@ -4,6 +4,17 @@
 
 macOS apps use **Apple Events** as the standard IPC mechanism. Gateway sends Apple Events containing JSON, app handles them, returns JSON responses.
 
+## Prerequisites
+
+Before implementing, understand the AAI protocol:
+
+| Resource | Description |
+|----------|-------------|
+| [AAI Protocol Overview](../../README.md) | What is AAI and why it matters |
+| [Protocol Specification](../README.md) | Full spec index |
+| [aai.json Descriptor](../aai-json.md) | Descriptor format |
+| [Security Model](../security.md) | Authorization details |
+
 ## IPC Protocol
 
 | Aspect | Value |
