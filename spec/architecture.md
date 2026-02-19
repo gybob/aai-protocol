@@ -14,7 +14,7 @@ flowchart TB
         G3["Execution Layer"]
         
         subgraph G3["Execution Layer"]
-            E1["macOS Executor<br/>JSON over IPC"]
+            E1["macOS Executor<br/>JSON over Apple Events"]
             E2["Web Executor<br/>JSON over HTTP"]
             E3["..."]
         end
@@ -23,13 +23,13 @@ flowchart TB
     end
 
     subgraph Apps["Applications"]
-        D1["macOS App<br/>Native IPC + aai.json"]
+        D1["macOS App<br/>Apple Events + aai.json"]
         W1["Web App<br/>HTTP API + aai.json"]
         X1["..."]
     end
 
     Agent -->|"MCP over Stdio (JSON-RPC)"| G1
-    E1 -->|"IPC"| D1
+    E1 -->|"Apple Events"| D1
     E2 -->|"HTTP"| W1
 
     style Agent fill:#e1f5fe
@@ -49,10 +49,10 @@ Gateway uses platform-specific executors. Each executor handles transport and au
 
 | Platform | Transport | Authorization |
 |----------|-----------|---------------|
-| macOS | JSON over IPC | Operating System |
+| macOS | JSON over Apple Events | Operating System |
 | web | JSON over HTTP | OAuth 2.1 |
-| linux | JSON over IPC | Operating System |
-| windows | JSON over IPC | Operating System |
+| linux | JSON over IPC (TBD) | Operating System |
+| windows | JSON over IPC (TBD) | Operating System |
 | ... | ... | ... |
 
 ### 3. Progressive Discovery
