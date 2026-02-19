@@ -14,5 +14,5 @@
 
 | Platform | Description |
 |----------|-------------|
-| [Desktop](./platforms/macos.md) | JSON over IPC |
+| [macOS](./platforms/macos.md) | JSON over IPC |
 | [Web](./platforms/web.md) | JSON over HTTP |
