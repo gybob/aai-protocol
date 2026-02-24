@@ -164,5 +164,6 @@ if [ -d "$PROTOCOL_DIR/examples" ]; then
 fi
 
 echo ""
-echo "Done! Synced files are gitignored in aai-website."
+echo "Done! Synced files are tracked in aai-website git repo."
+echo "Run 'git add . && git commit' in aai-website to commit changes."
 echo "Run 'npm run dev' in aai-website to preview."
