@@ -2,11 +2,9 @@
 
 ## Overview
 
-macOS apps use **Apple Events** as the standard IPC mechanism. Gateway sends Apple Events containing JSON, app handles them, returns JSON responses.
+macOS apps use **Apple Events** as the IPC mechanism. Gateway sends Apple Events containing JSON; the app handles them and returns JSON responses.
 
 ## Prerequisites
-
-Before implementing, understand the AAI protocol:
 
 | Resource | Description |
 |----------|-------------|
@@ -27,13 +25,12 @@ Before implementing, understand the AAI protocol:
 
 ## Implementation Steps
 
-> **Note**: Code snippets below are simplified examples illustrating the protocol. Adapt them to your app's architecture, error handling, and coding style.
+> **Note**: Code snippets below are simplified examples. Adapt them to your app's architecture.
 
 ### 1. Register Apple Event Handler
 
 ```swift
 // EXAMPLE: Simplified Apple Event handler
-// Adapt error handling, logging, and architecture to your needs
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSAppleEventManager.shared().setEventHandler(
@@ -43,9 +40,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             andEventID: AEEventID("call")
         )
     }
-    
+
     @objc func handleAAIEvent(_ event: NSAppleEventDescriptor, withReplyEvent replyEvent: NSAppleEventDescriptor) {
-        // Extract JSON request
         guard let jsonString = event.paramDescriptor(forKeyword: AEKeyword(keyDirectObject))?.stringValue else {
             replyEvent.setParamDescriptor(
                 NSAppleEventDescriptor(string: encodeError(code: "INVALID_REQUEST", message: "Missing request")),
@@ -53,23 +49,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             )
             return
         }
-        
-        // Parse and execute
+
         let response = processAAIRequest(jsonString)
-        
-        // Set response
+
         replyEvent.setParamDescriptor(
             NSAppleEventDescriptor(string: response),
             forKeyword: AEKeyword(keyDirectObject)
         )
     }
-    
+
     func processAAIRequest(_ jsonString: String) -> String {
         guard let data = jsonString.data(using: .utf8),
               let request = try? JSONDecoder().decode(AAIRequest.self, from: data) else {
             return encodeError(code: "INVALID_REQUEST", message: "Invalid JSON")
         }
-        
+
         let result = executeTool(request.tool, params: request.params)
         return encodeResponse(requestId: request.request_id, result: result)
     }
@@ -80,11 +74,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
 ```swift
 // EXAMPLE: Basic type definitions
-// Use your preferred JSON handling approach (Codable, etc.)
 struct AAIRequest: Codable {
     let version: String
     let tool: String
-    let params: [String: AnyCodable]  // Use AnyCodable for flexible JSON
+    let params: [String: AnyCodable]
     let request_id: String
 }
 
@@ -177,10 +170,7 @@ See [Error Codes](../error-codes.md) for standard codes.
       "returns": {
         "type": "object",
         "properties": {
-          "items": {
-            "type": "array",
-            "items": { "type": "object" }
-          }
+          "items": { "type": "array", "items": { "type": "object" } }
         }
       }
     }
@@ -188,44 +178,27 @@ See [Error Codes](../error-codes.md) for standard codes.
 }
 ```
 
-### 5. Place Descriptor
+### 5. Place Descriptor in App Bundle
+
+Add `aai.json` to your Xcode project as a **Bundle Resource**:
+
+1. Drag `aai.json` into your Xcode project
+2. In the file inspector, ensure **Target Membership** is checked for your app target
+3. Verify it appears in **Build Phases → Copy Bundle Resources**
+
+The file will be placed at:
 
 ```
-~/.aai/<app_id>/aai.json
+YourApp.app/Contents/Resources/aai.json
 ```
 
-Example: `~/.aai/com.yourcompany.yourapp/aai.json`
-
-Your app should create this file on first launch:
-
-```swift
-// EXAMPLE: Descriptor installation
-// Consider: error handling, user consent, version updates
-func installAADescriptor() {
-    let aaiDir = FileManager.default.homeDirectoryForCurrentUser
-        .appendingPathComponent(".aai")
-        .appendingPathComponent("com.yourcompany.yourapp")
-    
-    try? FileManager.default.createDirectory(at: aaiDir, withIntermediateDirectories: true)
-    
-    let aaiPath = aaiDir.appendingPathComponent("aai.json")
-    let aaiJson = """
-    {
-      "schema_version": "1.0",
-      "version": "1.0.0",
-      "platform": "macos",
-      ...
-    }
-    """
-    try? aaiJson.write(to: aaiPath, atomically: true, encoding: .utf8)
-}
-```
+**That's all.** No runtime installation code needed. Gateway discovers the descriptor automatically by scanning `/Applications/` on startup. The descriptor is installed when the user installs the app and removed when they uninstall it.
 
 ## Authorization
 
-macOS handles authorization natively. First time Gateway calls your app, OS prompts user for permission.
+macOS handles authorization natively. The first time Gateway calls your app via Apple Events, the OS prompts the user for permission. The user approves once; the OS remembers permanently.
 
-No code changes needed. User approves once, OS remembers.
+No code changes are needed to support this.
 
 ## Testing
 
@@ -237,9 +210,9 @@ osascript -e 'tell application "YourApp" to get result of ¬
    «class kfil»: "{\"version\":\"1.0\",\"tool\":\"search_items\",\"params\":{\"query\":\"test\"},\"request_id\":\"test_1\"}"}'
 ```
 
-### Simpler Test (if you expose a script command)
+### Add Scripting Definition (Optional)
 
-Add to your app's `sdef` (Scripting Definition):
+Add to your app's `sdef` for cleaner AppleScript syntax:
 
 ```xml
 <suite name="AAI Suite" code="AAI ">
@@ -260,10 +233,10 @@ Then test with:
 osascript -e 'tell application "YourApp" to aai call "{\"version\":\"1.0\",\"tool\":\"search_items\",\"params\":{\"query\":\"test\"},\"request_id\":\"test_1\"}"'
 ```
 
-### Verify Descriptor
+### Verify Descriptor is Bundled
 
 ```bash
-cat ~/.aai/com.yourcompany.yourapp/aai.json | python -m json.tool
+cat /Applications/YourApp.app/Contents/Resources/aai.json | python -m json.tool
 ```
 
 ## Checklist
@@ -274,8 +247,8 @@ cat ~/.aai/com.yourcompany.yourapp/aai.json | python -m json.tool
 - [ ] JSON parsing handles malformed input gracefully
 - [ ] Tool routing works for all defined tools
 - [ ] Error responses use standard error codes
-- [ ] aai.json placed at `~/.aai/<app_id>/aai.json`
-- [ ] aai.json `version` follows semver
+- [ ] `aai.json` added to Xcode project as Bundle Resource
+- [ ] `aai.json` `version` follows semver
 
 ---
 

@@ -6,8 +6,6 @@ Web apps expose HTTP APIs with OAuth 2.1 authorization. Gateway handles token ma
 
 ## Prerequisites
 
-Before implementing, understand the AAI protocol:
-
 | Resource | Description |
 |----------|-------------|
 | [AAI Protocol Overview](../../README.md) | What is AAI and why it matters |
@@ -17,7 +15,7 @@ Before implementing, understand the AAI protocol:
 
 ## Implementation Steps
 
-> **Note**: Code snippets below are simplified examples illustrating the protocol. Adapt them to your app's architecture, framework, and coding style.
+> **Note**: Code snippets below are simplified examples. Adapt them to your framework and architecture.
 
 ### 1. Implement OAuth 2.1 Endpoints
 
@@ -33,7 +31,8 @@ GET /oauth/authorize?
   scope=read%20write&
   state=xyz&
   code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM&
-  code_challenge_method=S256
+  code_challenge_method=S256&
+  aai_tools=send_email,read_inbox
 ```
 
 After user login and consent, redirect to:
@@ -86,21 +85,17 @@ Each tool maps to an HTTP endpoint:
 
 ```python
 # EXAMPLE: Flask endpoint (illustrative)
-# Adapt to your framework (FastAPI, Express, etc.) and architecture
 @app.route("/v1/search", methods=["POST"])
 def search():
     # Validate Bearer token
     token = request.headers.get("Authorization", "").replace("Bearer ", "")
     if not validate_token(token):
         return {"error": "unauthorized"}, 401
-    
-    # Get parameters from request body
+
     query = request.json.get("query")
     limit = request.json.get("limit", 10)
-    
-    # Execute tool logic
+
     results = perform_search(query, limit)
-    
     return {"items": results}
 ```
 
@@ -151,10 +146,7 @@ def search():
       "returns": {
         "type": "object",
         "properties": {
-          "items": {
-            "type": "array",
-            "items": { "type": "object" }
-          }
+          "items": { "type": "array", "items": { "type": "object" } }
         }
       }
     }
@@ -164,7 +156,7 @@ def search():
 
 ### 4. Host Descriptor
 
-Publish at well-known location:
+Publish at the well-known location:
 
 ```
 https://yourcompany.com/.well-known/aai.json
@@ -176,18 +168,15 @@ Configure your web server:
 location /.well-known/aai.json {
     alias /var/www/aai.json;
     default_type application/json;
+    add_header Access-Control-Allow-Origin *;
 }
 ```
 
-### 5. Register with AAI Registry
+**That's all.** No registration with any external service is needed. Gateway fetches your descriptor automatically when an agent needs to use your app, using the URL the agent resolves from the user's request.
 
-Submit your app to the AAI Registry for automatic discovery:
+## How Users Access Your App
 
-```bash
-curl -X POST https://registry.aai-protocol.org/apps \
-  -H "Content-Type: application/json" \
-  -d '{"app_id": "com.yourcompany.api", "descriptor_url": "https://yourcompany.com/.well-known/aai.json"}'
-```
+Users don't install your web app manually. When a user tells their agent "help me do X in YourApp", the agent resolves your URL (from its own knowledge or by asking the user), then Gateway fetches your descriptor on demand. The first time requires OAuth authorization in the browser; subsequent sessions reuse the cached token.
 
 ## Tool Execution Mapping
 
@@ -197,22 +186,19 @@ curl -X POST https://registry.aai-protocol.org/apps \
 | `execution.path` | Appended to `base_url` |
 | `execution.method` | HTTP method |
 | `parameters` | JSON request body |
-| Auth | `Authorization: Bearer <token>` |
-
-Gateway automatically adds `Authorization` header with access token.
+| Auth | `Authorization: Bearer <token>` (added by Gateway) |
 
 ## Token Validation
 
-Validate JWT or lookup token in your database:
+Validate JWT or look up token in your database:
 
 ```python
 # EXAMPLE: Token validation (illustrative)
-# Adapt to your auth system and security requirements
 def validate_token(token):
     # Option 1: JWT validation
     payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-    return payload["scope"]  # return scopes
-    
+    return payload["scope"]
+
     # Option 2: Database lookup
     # token_record = db.query(Token).filter_by(access_token=token).first()
     # return token_record.scopes if token_record else None
@@ -267,8 +253,7 @@ curl -X POST https://api.yourcompany.com/v1/search \
 - [ ] Token response includes `access_token`, `refresh_token`, `expires_in`
 - [ ] API endpoints validate Bearer token
 - [ ] API endpoints accept JSON request body
-- [ ] aai.json hosted at `/.well-known/aai.json`
-- [ ] aai.json registered with AAI Registry
+- [ ] `aai.json` hosted at `/.well-known/aai.json` with `Access-Control-Allow-Origin: *`
 - [ ] Error responses follow standard format
 
 ---

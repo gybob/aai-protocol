@@ -12,7 +12,114 @@ Loading all app descriptors at once would flood the Agent's context:
 
 Progressive discovery solves this by loading only what's needed.
 
-## Discovery Flow
+## Desktop App Discovery
+
+### Descriptor Location
+
+AAI-compatible macOS apps bundle their descriptor inside the app itself:
+
+```
+/Applications/YourApp.app/Contents/Resources/aai.json
+~/Applications/YourApp.app/Contents/Resources/aai.json
+```
+
+### Scanning
+
+Gateway scans for `aai.json` files in all installed app bundles on startup:
+
+```bash
+find /Applications ~/Applications -maxdepth 4 \
+  -path "*/Contents/Resources/aai.json" 2>/dev/null
+```
+
+Gateway rebuilds the app list each startup. No persistent registry is needed — the filesystem is the source of truth.
+
+## Web App Discovery
+
+### Descriptor Location
+
+Web apps publish their descriptor at a well-known URL:
+
+```
+https://yourapp.com/.well-known/aai.json
+```
+
+No registration with any central service is required.
+
+### Auto-Fetch on Demand
+
+Gateway fetches web app descriptors lazily when the agent needs them. The agent passes a URL as the resource URI:
+
+```json
+// Agent → Gateway
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "method": "resources/read",
+  "params": {
+    "uri": "https://notion.so"
+  }
+}
+
+// Gateway → Agent (fetched from notion.so/.well-known/aai.json)
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "result": {
+    "contents": [{
+      "uri": "https://notion.so",
+      "mimeType": "application/json",
+      "text": "{ \"tools\": [...] }"
+    }]
+  }
+}
+```
+
+Gateway caches the fetched descriptor locally and reuses it for subsequent calls (TTL: 24 hours).
+
+### Name Resolution
+
+The agent receives user intent in natural language (e.g. "帮我在 Notion 创建一个页面"). The agent is responsible for resolving the app name to a URL before calling `resources/read`.
+
+**Resolution order:**
+
+**1. User's cached mappings (highest priority)**
+
+Gateway persists name→URL mappings learned from past sessions:
+
+```json
+// ~/.config/aai-gateway/name-cache.json
+{
+  "jira": "https://jira.mycompany.com",
+  "our crm": "https://crm.internal.example.com"
+}
+```
+
+**2. LLM inference**
+
+For well-known apps, the agent infers the URL from its training knowledge:
+
+```
+"Notion"  → notion.so
+"Gmail"   → mail.google.com
+"GitHub"  → github.com
+```
+
+**3. Ask the user (fallback)**
+
+If the agent cannot confidently resolve the name:
+
+```
+Agent: "I need to access your Jira instance. What's the URL?"
+User: "jira.mycompany.com"
+Agent: → calls resources/read("https://jira.mycompany.com")
+       → Gateway fetches, caches descriptor
+       → Gateway saves "jira" → "https://jira.mycompany.com" to name cache
+```
+
+The mapping is saved permanently. Next time the user says "Jira", the cached URL is used directly.
+
+## Discovery Flow (Full)
 
 ### Step 1: List Available Apps
 
@@ -31,126 +138,63 @@ Progressive discovery solves this by loading only what's needed.
   "result": {
     "resources": [
       {
-        "uri": "app:com.example.mail",
+        "uri": "app:com.apple.mail",
         "name": "Mail",
         "description": "Email client"
       },
       {
-        "uri": "app:com.example.calendar",
-        "name": "Calendar",
-        "description": "Calendar application"
+        "uri": "app:com.example.worklens",
+        "name": "WorkLens",
+        "description": "AI-powered task management"
       }
     ]
   }
 }
 ```
 
-### Step 2: Load App Details On Demand
+`resources/list` returns **desktop apps only** (discovered from Bundle scan). Web apps are not listed here — they are fetched on demand.
+
+### Step 2: Load App Descriptor On Demand
+
+**Desktop app** (by app ID):
 
 ```json
-// Agent → Gateway
-{
-  "jsonrpc": "2.0",
-  "id": 2,
-  "method": "resources/read",
-  "params": {
-    "uri": "app:com.example.mail"
-  }
-}
+{ "method": "resources/read", "params": { "uri": "app:com.apple.mail" } }
+```
 
-// Gateway → Agent (returns full descriptor)
-{
-  "jsonrpc": "2.0",
-  "id": 2,
-  "result": {
-    "contents": [{
-      "uri": "app:com.example.mail",
-      "mimeType": "application/json",
-      "text": "{ \"tools\": [...] }"
-    }]
-  }
-}
+**Web app** (by URL):
+
+```json
+{ "method": "resources/read", "params": { "uri": "https://notion.so" } }
 ```
 
 ### Step 3: Call Tool
 
 ```json
-// Agent → Gateway
 {
   "jsonrpc": "2.0",
   "id": 3,
   "method": "tools/call",
   "params": {
-    "name": "com.example.mail:send_email",
+    "name": "com.apple.mail:send_email",
     "arguments": {
       "to": ["alice@example.com"],
       "body": "Hello!"
     }
   }
 }
-
-// Gateway → Agent
-{
-  "jsonrpc": "2.0",
-  "id": 3,
-  "result": {
-    "content": [{
-      "type": "text",
-      "text": "Email sent. Message ID: msg_123"
-    }]
-  }
-}
 ```
 
-## Descriptor Sources
+Tool names are prefixed with the app ID to avoid collisions across apps.
 
-### Desktop Apps
+## Context Usage
 
-Local filesystem discovery:
-
-```
-~/.aai/
-├── com.example.mail/
-│   └── aai.json
-└── com.example.calendar/
-    └── aai.json
-```
-
-Gateway scans this directory on startup.
-
-### Web Apps
-
-Discovered via AAI Registry:
-
-```
-1. Gateway fetches app directory from registry
-2. Downloads each descriptor_url
-3. Caches locally at ~/.aai/web/<app_id>/aai.json
-```
-
-Registry API:
-```json
-GET https://registry.aai-protocol.org/v1/apps
-
-{
-  "apps": [
-    {
-      "id": "com.notion.api",
-      "name": "Notion",
-      "descriptor_url": "https://api.notion.com/.well-known/aai.json"
-    }
-  ]
-}
-```
-
-## Benefits
-
-| Approach | Context Usage | Use Case |
-|----------|---------------|----------|
+| Approach | Context Usage | When |
+|----------|---------------|------|
 | Load all | ~250k tokens | Never |
-| Progressive | ~5k per app | On demand |
+| Progressive (per app) | ~5k tokens | On demand |
 
-Agent only loads descriptors when the user mentions an app.
+Agent only loads a descriptor when the user's intent requires that specific app.
 
 ---
 

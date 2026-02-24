@@ -9,6 +9,7 @@
 | [Security Model](./security.md) | Authorization |
 | [Error Codes](./error-codes.md) | Standard errors |
 | [Discovery](./discovery.md) | On-demand loading |
+| [Gateway](./gateway.md) | Gateway deployment and behavior |
 
 ## Platform Guides
 
