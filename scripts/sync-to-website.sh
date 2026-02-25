@@ -105,6 +105,8 @@ echo "→ Syncing README.md as index.md..."
 title=$(extract_title "$PROTOCOL_DIR/README.md")
 add_frontmatter "$PROTOCOL_DIR/README.md" "$WEBSITE_DIR/docs/index.md" "$title"
 fix_links "$WEBSITE_DIR/docs/index.md"
+# Remove Quick Links section
+awk '/^## Quick Links/{skip=1; next} /^## / && skip{skip=0} skip==0{print}' "$WEBSITE_DIR/docs/index.md" > "$WEBSITE_DIR/docs/index.md.tmp" && mv "$WEBSITE_DIR/docs/index.md.tmp" "$WEBSITE_DIR/docs/index.md"
 echo "  Done"
 
 # ── 2. Sync spec/*.md to protocol/ ────────────────────────────────────────
