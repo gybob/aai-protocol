@@ -87,14 +87,14 @@ With AAI, users delegate daily work to AI Agents instead of operating applicatio
 ## How It Works
 
 1. App provides `aai.json` describing its tools:
-   - **Desktop apps** → placed in `~/.aai/<appId>/aai.json`
-   - **Web Apps** → hosted on their domain, registered to AAI Registry
-2. AAI Gateway discovers and loads all descriptors (local scan + registry fetch)
-3. Agent connects to Gateway via standard MCP (stdio)
-4. Agent discovers available apps and tools on demand
+   - **Desktop apps** → bundled inside the app at `YourApp.app/Contents/Resources/aai.json`
+   - **Web Apps** → hosted at `https://yourdomain.com/.well-known/aai.json`
+2. Agent connects to AAI Gateway via standard MCP (stdio)
+3. Gateway scans `/Applications/` on startup and builds a list of AAI-compatible desktop apps
+4. Agent discovers available apps and tools on demand; web app descriptors are fetched automatically when needed
 5. Gateway executes the call:
    - **Desktop apps** → JSON over native IPC, OS-managed authorization
-   - **Web Apps** → JSON over HTTP, Gateway-managed OAuth 2.1 authorization
+   - **Web Apps** → JSON over HTTPS, Gateway-managed OAuth 2.1 authorization
 
 Both humans (via GUI) and Agents (via AAI) access the same core application logic. Neither interferes with the other.
 
