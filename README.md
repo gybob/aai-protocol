@@ -104,7 +104,7 @@ Both humans (via GUI) and Agents (via AAI) access the same core application logi
 |----------|-------------|
 | [Protocol Specification](./spec/README.md) | Full technical specification |
 | [aai-protocol.org](https://aai-protocol.org) | Official website |
-| [AAI Gateway](https://github.com/gybob/aai-protocol) | Reference implementation |
+| [AAI Gateway](https://github.com/gybob/aai-gateway) | Reference implementation |
 
 ## License
 
