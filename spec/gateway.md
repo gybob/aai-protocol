@@ -2,6 +2,8 @@
 
 The AAI Gateway is a **stdio MCP server** that bridges LLM agents and AAI-compatible apps. It handles discovery, consent, and execution.
 
+**Official Implementation**: [github.com/gybob/aai-gateway](https://github.com/gybob/aai-gateway)
+
 ## Deployment
 
 Gateway runs as a stdio process managed by the agent client (e.g. Claude Desktop). No daemon or background service is required.
