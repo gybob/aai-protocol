@@ -1,18 +1,6 @@
 # Discovery
 
-AAI uses on-demand loading via MCP resources to avoid context explosion.
 
-## The Problem
-
-Loading all app descriptors at once would flood the Agent's context:
-
-```
-50 apps × 10 tools × 500 tokens = 250,000 tokens
-```
-
-Progressive discovery solves this by loading only what's needed.
-
-## Desktop App Discovery
 
 ### Descriptor Location
 
@@ -187,14 +175,7 @@ The mapping is saved permanently. Next time the user says "Jira", the cached URL
 
 Tool names are prefixed with the app ID to avoid collisions across apps.
 
-## Context Usage
 
-| Approach | Context Usage | When |
-|----------|---------------|------|
-| Load all | ~250k tokens | Never |
-| Progressive (per app) | ~5k tokens | On demand |
-
-Agent only loads a descriptor when the user's intent requires that specific app.
 
 ---
 

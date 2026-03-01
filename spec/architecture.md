@@ -76,13 +76,7 @@ Gateway uses platform-specific executors:
 | linux | JSON over IPC (TBD) | Operating System |
 | windows | JSON over IPC (TBD) | Operating System |
 
-### 4. Progressive Discovery
-
-Agents load tool definitions on-demand via MCP resources, avoiding context explosion.
-
-See [Discovery](./discovery.md) for details.
-
-### 5. Zero-Install Gateway
+### 4. Zero-Install Gateway
 
 Gateway runs as a stdio MCP server — no daemon, no background service. It is spawned by the agent client (e.g. Claude Desktop) when needed.
 
