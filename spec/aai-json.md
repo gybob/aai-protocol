@@ -61,9 +61,33 @@
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `id` | string | Yes | Reverse-DNS identifier |
-| `name` | string | Yes | Human-readable name |
-| `description` | string | Yes | Brief description |
+| `name` | string | Yes | Human-readable name. Multi-language names separated by `\|` (e.g., `"Reminders\|提醒事项\|Rappels"`) |
+| `description` | string | Yes | Brief description in English (for agent consumption) |
+| `aliases` | string[] | No | Alternative names for app discovery (e.g., `["reminder", "todo", "待办"]`) |
 
+#### Multi-language Name Format
+
+The `name` field supports multiple languages using the pipe (`|`) character as separator:
+
+```json
+{
+  "name": "Reminders|提醒事项|Rappels|Erinnerungen"
+}
+```
+
+- The first name is the primary (typically English) name
+- Subsequent names are localized versions
+- This allows agents to match user intent across languages
+
+#### Aliases
+
+The `aliases` array provides additional keywords for fuzzy matching:
+
+```json
+{
+  "aliases": ["reminder", "todo", "待办", "tasks", "task manager"]
+}
+```
 ### execution Fields
 
 | Field | Type | Required | Description |
@@ -125,8 +149,6 @@ The `version` field follows [Semantic Versioning](https://semver.org/): `MAJOR.M
 
 **Rule of thumb**: If existing Agents might break, bump MAJOR. Otherwise, MINOR for new features, PATCH for fixes.
 
-## Examples
-
 ### Desktop (macOS)
 
 ```json
@@ -135,9 +157,10 @@ The `version` field follows [Semantic Versioning](https://semver.org/): `MAJOR.M
   "version": "1.0.0",
   "platform": "macos",
   "app": {
-    "id": "com.example.mail",
-    "name": "Mail",
-    "description": "Email client"
+    "id": "com.example.reminders",
+    "name": "Reminders|提醒事项|Rappels|Erinnerungen",
+    "description": "Task and reminder management",
+    "aliases": ["reminder", "todo", "待办", "tasks"]
   },
   "execution": { "type": "ipc" },
   "tools": [ ... ]
@@ -153,8 +176,9 @@ The `version` field follows [Semantic Versioning](https://semver.org/): `MAJOR.M
   "platform": "web",
   "app": {
     "id": "com.example.api",
-    "name": "Example API",
-    "description": "REST API service"
+    "name": "Example API|示例API",
+    "description": "REST API service",
+    "aliases": ["api", "rest"]
   },
   "execution": {
     "type": "http",

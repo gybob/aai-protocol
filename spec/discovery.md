@@ -1,6 +1,10 @@
 # Discovery
 
+## Overview
 
+AAI Gateway uses a **guide-based discovery model** that minimizes context explosion while enabling progressive app discovery. Instead of exposing all tools upfront, Gateway provides app entries that return operation guides on demand.
+
+## Desktop App Discovery
 
 ### Descriptor Location
 
@@ -34,148 +38,167 @@ https://yourapp.com/.well-known/aai.json
 
 No registration with any central service is required.
 
-### Auto-Fetch on Demand
+### On-Demand Fetch
 
-Gateway fetches web app descriptors lazily when the agent needs them. The agent passes a URL as the resource URI:
+Web app descriptors are fetched lazily via the `web:discover` tool when the agent needs them.
 
-```json
-// Agent → Gateway
-{
-  "jsonrpc": "2.0",
-  "id": 2,
-  "method": "resources/read",
-  "params": {
-    "uri": "https://notion.so"
-  }
-}
+## MCP Interface
 
-// Gateway → Agent (fetched from notion.so/.well-known/aai.json)
-{
-  "jsonrpc": "2.0",
-  "id": 2,
-  "result": {
-    "contents": [{
-      "uri": "https://notion.so",
-      "mimeType": "application/json",
-      "text": "{ \"tools\": [...] }"
-    }]
-  }
-}
-```
+### tools/list
 
-Gateway caches the fetched descriptor locally and reuses it for subsequent calls (TTL: 24 hours).
-
-### Name Resolution
-
-The agent receives user intent in natural language (e.g. "帮我在 Notion 创建一个页面"). The agent is responsible for resolving the app name to a URL before calling `resources/read`.
-
-**Resolution order:**
-
-**1. User's cached mappings (highest priority)**
-
-Gateway persists name→URL mappings learned from past sessions:
+Returns all discovered desktop apps plus universal tools for web discovery and execution:
 
 ```json
-// ~/.config/aai-gateway/name-cache.json
 {
-  "jira": "https://jira.mycompany.com",
-  "our crm": "https://crm.internal.example.com"
-}
-```
-
-**2. LLM inference**
-
-For well-known apps, the agent infers the URL from its training knowledge:
-
-```
-"Notion"  → notion.so
-"Gmail"   → mail.google.com
-"GitHub"  → github.com
-```
-
-**3. Ask the user (fallback)**
-
-If the agent cannot confidently resolve the name:
-
-```
-Agent: "I need to access your Jira instance. What's the URL?"
-User: "jira.mycompany.com"
-Agent: → calls resources/read("https://jira.mycompany.com")
-       → Gateway fetches, caches descriptor
-       → Gateway saves "jira" → "https://jira.mycompany.com" to name cache
-```
-
-The mapping is saved permanently. Next time the user says "Jira", the cached URL is used directly.
-
-## Discovery Flow (Full)
-
-### Step 1: List Available Apps
-
-```json
-// Agent → Gateway
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "resources/list"
-}
-
-// Gateway → Agent
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": {
-    "resources": [
-      {
-        "uri": "app:com.apple.mail",
-        "name": "Mail",
-        "description": "Email client"
-      },
-      {
-        "uri": "app:com.example.worklens",
-        "name": "WorkLens",
-        "description": "AI-powered task management"
+  "tools": [
+    {
+      "name": "app:com.apple.reminders",
+      "description": "【Reminders|提醒事项|Rappels】macOS reminders app. Aliases: reminder, todo, 待办. Call to get guide.",
+      "inputSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "name": "app:com.apple.mail",
+      "description": "【Mail|邮件】macOS email client. Aliases: mail, email. Call to get guide.",
+      "inputSchema": { "type": "object", "properties": {} }
+    },
+    {
+      "name": "web:discover",
+      "description": "Discover web app guide. Use when user mentions a web service. Supports URL/domain/name.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Web app URL, domain, or name"
+          }
+        },
+        "required": ["url"]
       }
-    ]
-  }
-}
-```
-
-`resources/list` returns **desktop apps only** (discovered from Bundle scan). Web apps are not listed here — they are fetched on demand.
-
-### Step 2: Load App Descriptor On Demand
-
-**Desktop app** (by app ID):
-
-```json
-{ "method": "resources/read", "params": { "uri": "app:com.apple.mail" } }
-```
-
-**Web app** (by URL):
-
-```json
-{ "method": "resources/read", "params": { "uri": "https://notion.so" } }
-```
-
-### Step 3: Call Tool
-
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 3,
-  "method": "tools/call",
-  "params": {
-    "name": "com.apple.mail:send_email",
-    "arguments": {
-      "to": ["alice@example.com"],
-      "body": "Hello!"
+    },
+    {
+      "name": "aai:exec",
+      "description": "Execute app operation. Parameters: app, tool, args. Use after reading guide.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "app": { "type": "string", "description": "App ID or URL" },
+          "tool": { "type": "string", "description": "Operation name" },
+          "args": { "type": "object", "description": "Parameters" }
+        },
+        "required": ["app", "tool"]
+      }
     }
-  }
+  ]
 }
 ```
 
-Tool names are prefixed with the app ID to avoid collisions across apps.
+**Context Efficiency**: Only `O(apps + 2)` entries instead of `O(apps × tools)`.
 
+### Description Format
 
+App descriptions follow this pattern for optimal agent matching:
+
+```
+【{multi-language-names}】{description}. Aliases: {alias-list}. Call to get guide.
+```
+
+- **Multi-language names**: From `app.name` field (pipe-separated)
+- **Description**: From `app.description` field
+- **Aliases**: From `app.aliases` field (comma-separated)
+
+### App Matching
+
+Agents match user intent to apps using:
+
+1. **Multi-language names**: User says "提醒事项" → matches `app:com.apple.reminders`
+2. **Aliases**: User says "todo" → matches via aliases
+3. **Fuzzy matching**: Agent's LLM capabilities handle variations
+
+## Discovery Flow
+
+### Desktop App Flow
+
+```
+User: "帮我在提醒事项里创建提醒"
+
+1. tools/list → Agent sees "【Reminders|提醒事项|Rappels】"
+2. Match "提醒事项" → app:com.apple.reminders
+3. tools/call("app:com.apple.reminders", {}) → Returns operation guide
+4. tools/call("aai:exec", {app, tool, args}) → Executes operation
+```
+
+### Web App Flow
+
+```
+User: "帮我在 Notion 里创建页面"
+
+1. tools/list → No matching app found
+2. tools/call("web:discover", {url: "notion.com"}) → Returns Notion guide
+3. tools/call("aai:exec", {app: "https://api.notion.com", tool, args}) → Executes
+```
+
+## Operation Guide Format
+
+When calling `app:*` or `web:discover`, Gateway returns a guide:
+
+```markdown
+# Reminders Operation Guide
+
+## App Info
+
+- ID: com.apple.reminders
+- Platform: macos
+
+## Authentication
+
+Uses OS-level consent (TCC). First execution shows native dialog.
+
+## Available Operations
+
+### create_reminder
+
+Create a new reminder
+
+**Parameters**:
+
+- title (string, required): Reminder title
+- due (string, optional): Due datetime YYYY-MM-DD HH:MM
+- list (string, optional): List name
+
+**Example**:
+aai:exec({
+app: "com.apple.reminders",
+tool: "create_reminder",
+args: { title: "Submit report", due: "2024-12-31 15:00" }
+})
+
+---
+
+Use aai:exec tool to execute operations.
+```
+
+## Name Resolution (Web Apps)
+
+When agent calls `web:discover`, Gateway:
+
+1. Normalizes URL input (adds `https://`, handles domain-only)
+2. Fetches `.well-known/aai.json`
+3. Caches descriptor (TTL: 24 hours)
+4. Generates and returns operation guide
+
+**URL Input Formats**:
+
+- Full URL: `https://api.example.com`
+- Domain: `api.example.com` → `https://api.example.com`
+- Service name: Agent infers URL from knowledge
+
+## Local Storage
+
+| Data                 | Location                               | Format         |
+| -------------------- | -------------------------------------- | -------------- |
+| Web descriptor cache | `~/.cache/aai-gateway/<host>/aai.json` | JSON + `.meta` |
+| Consent decisions    | OS Keychain                            | Encrypted      |
+| OAuth tokens         | OS Keychain                            | Encrypted      |
 
 ---
 
