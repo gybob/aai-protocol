@@ -4,21 +4,6 @@
 
 `aai.json` defines application capabilities using [JSON Schema](https://json-schema.org/). Each file describes a single platform deployment.
 
-## Naming Convention
-
-**All field names in `aai.json` MUST use `camelCase`.**
-
-This follows mainstream JSON API conventions:
-
-- [OpenAPI](https://swagger.io/specification/) - camelCase for property names
-- [JSON Schema](https://json-schema.org/) - camelCase for properties
-- [JSON:API](https://jsonapi.org/recommendations/#naming) - recommends camelCase
-- [GraphQL](https://graphql.org/learn/schema/) - camelCase for fields
-
-**Examples:**
-
-- ✅ `schemaVersion`, `baseUrl`, `defaultHeaders`
-- ❌ `schema_version`, `base_url`, `default-headers`
 
 ## Structure
 

@@ -106,6 +106,11 @@ Both humans (via GUI) and Agents (via AAI) access the same core application logi
 | [aai-protocol.org](https://aai-protocol.org) | Official website |
 | [AAI Gateway](https://github.com/gybob/aai-gateway) | Reference implementation |
 
+## Contact
+
+gybeml@gmail.com
+
+
 ## License
 
 Apache 2.0
