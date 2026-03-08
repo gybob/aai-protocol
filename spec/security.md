@@ -11,6 +11,18 @@ Both authorization layers are about **user authorizing agent to access an app**,
 
 **Gateway Consent is required for ALL platforms** (macOS, web, linux, windows).
 
+### Caller-Aware Consent
+
+Gateway Consent is **caller-aware**, meaning consent decisions are isolated per MCP client:
+
+- **Client Identification**: Gateway identifies which MCP client (Claude Desktop, Cursor, Windsurf, etc.) is making the request
+- **Isolated Consent**: Consent granted to one client is NOT shared with other clients
+- **Per-Caller Authorization**: Each MCP client must obtain its own authorization for tools
+- **Clear Attribution**: Consent dialogs clearly show which client is requesting access
+
+This prevents cross-client authorization leakage and ensures users know exactly which client is accessing which tools.
+**Gateway Consent is required for ALL platforms** (macOS, web, linux, windows).
+
 ## Why Two Layers?
 
 ### Gateway Consent (Protects User from Malicious Apps)
@@ -39,6 +51,76 @@ With App authorization:
 - Web app shows: "Agent X requests access to: sendEmail, readInbox"
 - User confirms they trust this agent
 - App knows which operations are authorized
+
+## Caller-Aware Consent
+
+### Concept
+
+Gateway Consent is **caller-aware**, meaning consent decisions are isolated per MCP client:
+
+1. **Client Identification**: Gateway identifies the MCP client from `InitializeRequest.clientInfo`
+2. **Isolated Consent**: Consent is stored per `(callerName, appId, toolName)` tuple
+3. **Re-authorization Required**: Different clients must obtain their own authorization
+4. **Clear Attribution**: Consent dialogs show which client is requesting access
+
+### Why Caller-Aware?
+
+Without caller-aware consent:
+
+- Claude Desktop authorizes `sendEmail` tool
+- Cursor connects to same Gateway instance
+- Cursor can use `sendEmail` WITHOUT user's knowledge (reuses Claude's consent)
+- Security risk: User may not want Cursor to have same access as Claude
+
+With caller-aware consent:
+
+- Claude Desktop authorizes `sendEmail` tool
+- Cursor connects to same Gateway instance
+- Cursor tries to use `sendEmail` → Consent dialog shown: "Cursor wants to use: sendEmail"
+- User explicitly authorizes Cursor (or denies)
+- Consent is isolated per client
+
+### Consent Isolation
+
+```
+Claude Desktop:
+  ├─ com.example.mail
+  │   ├─ sendEmail: granted
+  │   └─ readInbox: granted
+
+Cursor:
+  ├─ com.example.mail
+  │   └─ sendEmail: granted (separate authorization)
+  │
+  └─ com.example.calendar
+      └─ createEvent: denied
+
+Windsurf:
+  └─ (no consents yet)
+```
+
+Each client has its own consent namespace.
+
+### Caller Identity Source
+
+Caller identity is extracted from MCP protocol metadata:
+
+```typescript
+interface CallerIdentity {
+  name: string;        // e.g., "Claude Desktop", "Cursor", "Windsurf"
+  version?: string;    // Client version if available
+}
+
+// Extracted from InitializeRequest
+const callerIdentity = {
+  name: request.params.clientInfo?.name ?? 'Unknown Client',
+  version: request.params.clientInfo?.version,
+};
+```
+
+**Fallback**: If `clientInfo` is not provided, use `"Unknown Client"` as caller name.
+
+**Security Note**: Caller identity is informational only and not a security boundary. The real security is enforced by the operating system (TCC on macOS, UAC on Windows, etc.).
 
 ## Gateway Consent Flow
 
@@ -108,6 +190,7 @@ Gateway MUST display the following information:
 
 | Field            | Source             | Description                           |
 | ---------------- | ------------------ | ------------------------------------- |
+| Caller Name      | MCP clientInfo     | Which MCP client is making request    |
 | App Name         | `app.name`         | Which app is exposing this tool       |
 | App ID           | `app.id`           | Unique identifier                     |
 | Tool Name        | `tool.name`        | Tool identifier                       |
@@ -119,12 +202,12 @@ Gateway MUST display the following information:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ ⚠️  Tool Authorization Request                              │
+│ ⚠️  Claude Desktop requests tool access                     │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │ App: Example Mail (com.example.mail)                        │
 │                                                             │
-│ Agent requests permission to use:                           │
+│ Claude Desktop wants to use:                                │
 │                                                             │
 │ ┌─────────────────────────────────────────────────────────┐ │
 │ │ sendEmail                                               │ │
@@ -136,7 +219,7 @@ Gateway MUST display the following information:
 │ │ • subject: Email subject line                           │ │
 │ │ • body: Email body content                              │ │
 │ │                                                         │ │
-│ │ ⚠️ Agent can send emails to anyone with any content     │ │
+│ │ ⚠️ Claude Desktop can send emails to anyone             │ │
 │ └─────────────────────────────────────────────────────────┘ │
 │                                                             │
 │ [Authorize Tool]  [Authorize All Tools]  [Deny]             │
@@ -181,9 +264,13 @@ Gateway MUST display the following information:
 
 Data stored in keystore should be JSON-encoded then encrypted:
 
+**Caller-Scoped Consent Storage**:
+
+Consent decisions are nested by caller name first, then by app ID:
+
 ```json
 {
-  "consents": {
+  "Claude Desktop": {
     "com.example.mail": {
       "allTools": false,
       "tools": {
@@ -199,29 +286,45 @@ Data stored in keystore should be JSON-encoded then encrypted:
         }
       }
     }
+  },
+  "Cursor": {
+    "com.example.mail": {
+      "allTools": false,
+      "tools": {}
+    }
   }
 }
 ```
 
+**Key Points**:
+
+- Each MCP client (Claude Desktop, Cursor, Windsurf, etc.) has its own consent namespace
+- Consent granted to one client is NOT visible to other clients
+- If `clientInfo` is not provided, use `"Unknown Client"` as the caller name
+- This ensures isolation and prevents cross-client authorization leakage
+
 ### Storage Fields
 
-| Field                    | Type    | Description                             |
-| ------------------------ | ------- | --------------------------------------- |
-| `allTools`               | boolean | User authorized all tools from this app |
-| `tools.<name>.granted`   | boolean | Whether this tool is authorized         |
-| `tools.<name>.grantedAt` | string  | When consent was granted                |
-| `tools.<name>.remember`  | boolean | Persist decision                        |
+| Field                              | Type    | Description                             |
+| ---------------------------------- | ------- | --------------------------------------- |
+| `<callerName>`                     | object  | Namespace for this MCP client           |
+| `<callerName>.<appId>`             | object  | Consent for this app from this client   |
+| `<callerName>.<appId>.allTools`    | boolean | User authorized all tools from this app |
+| `<callerName>.<appId>.tools.<name>`| object  | Consent record for specific tool        |
+| `*.granted`                        | boolean | Whether this tool is authorized         |
+| `*.grantedAt`                      | string  | When consent was granted                |
+| `*.remember`                       | boolean | Persist decision                        |
 
 ### Implementation Example (macOS)
 
 ```swift
 import Security
 
-func storeConsent(_ consent: Data, forAppId appId: String) throws {
+func storeConsent(_ consent: Data, forCallerName callerName: String, appId: String) throws {
     let query: [String: Any] = [
         kSecClass as String: kSecClassGenericPassword,
         kSecAttrService as String: "aai-gateway",
-        kSecAttrAccount as String: "consent-\(appId)",
+        kSecAttrAccount as String: "consent-\(callerName)-\(appId)",
         kSecValueData as String: consent
     ]
 
@@ -231,11 +334,11 @@ func storeConsent(_ consent: Data, forAppId appId: String) throws {
     }
 }
 
-func loadConsent(forAppId appId: String) throws -> Data? {
+func loadConsent(forCallerName callerName: String, appId: String) throws -> Data? {
     let query: [String: Any] = [
         kSecClass as String: kSecClassGenericPassword,
         kSecAttrService as String: "aai-gateway",
-        kSecAttrAccount as String: "consent-\(appId)",
+        kSecAttrAccount as String: "consent-\(callerName)-\(appId)",
         kSecReturnData as String: true
     ]
 
@@ -252,6 +355,8 @@ func loadConsent(forAppId appId: String) throws -> Data? {
     return result as? Data
 }
 ```
+
+**Note**: The storage key format is `consent-{callerName}-{appId}` to ensure caller-scoped isolation.
 
 ## App Authorization
 
