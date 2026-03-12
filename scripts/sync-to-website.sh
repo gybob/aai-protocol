@@ -82,6 +82,9 @@ fix_links() {
   
   # Fix image paths
   sed -i '' 's|src="\./images/|src="/|g' "$file"
+  sed -i '' 's|](\./images/|](/|g' "$file"
+  sed -i '' 's|](\.\./images/|](/|g' "$file"
+  sed -i '' 's|](\.\./\.\./images/|](/|g' "$file"
 }
 
 # ── Verify Directories ────────────────────────────────────────────────────
