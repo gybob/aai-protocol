@@ -2,55 +2,7 @@
 
 ## Architecture Overview
 
-```mermaid
-flowchart TB
-    subgraph Agent["LLM Agent"]
-        A1[Claude / OpenClaw / etc]
-    end
-
-    subgraph Gateway["AAI Gateway (stdio MCP Server)"]
-        G1["MCP Interface<br/>resources/list, resources/read<br/>tools/call"]
-        G2["Descriptor Parser<br/>JSON Schema validation"]
-        G3["Consent Manager<br/>Per-tool authorization"]
-        G4["Execution Layer"]
-        G5["Local Cache<br/>Web descriptors + Name mappings"]
-
-        subgraph G4["Execution Layer"]
-            E1["Native Executor<br/>Apple Events / DBus / COM"]
-            E2["Web Executor<br/>JSON over HTTP"]
-            E3["ACP Executor<br/>stdio JSON-RPC"]
-            E4["Stdio Executor<br/>JSON over stdin/stdout"]
-        end
-
-        G1 --> G2 --> G3 --> G4
-        G1 <--> G5
-    end
-
-    subgraph User["User"]
-        U1["Consent UI"]
-    end
-
-    subgraph Apps["Applications"]
-        D1["Desktop App<br/>Native binding + bundled aai.json"]
-        S1["Local Adapter<br/>stdio + aai.json"]
-        W1["Web App<br/>HTTP API + .well-known/aai.json"]
-        X1["..."]
-    end
-
-    Agent -->|"MCP over Stdio (JSON-RPC)"| G1
-    G3 -->|"Request consent"| U1
-    U1 -->|"Grant/Deny"| G3
-    E1 -->|"Apple Events / DBus / COM"| D1
-    E2 -->|"HTTPS"| W1
-    E3 -->|"ACP over stdio"| X1
-    E4 -->|"stdin/stdout JSON"| S1
-    G5 <-->|"Fetch on demand"| W1
-
-    style Agent fill:#e1f5fe
-    style Gateway fill:#fff3e0
-    style Apps fill:#e8f5e9
-    style User fill:#fce4ec
-```
+![AAI Protocol Architecture](../images/architecture.png)
 
 ## Core Design Principles
 
