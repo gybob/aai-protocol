@@ -55,7 +55,7 @@ Without AAI:
 With AAI:
   Agent discovers your app via aai.json  ✅
   Agent reads tool definitions           ✅
-  Agent calls it directly (IPC or API)   ✅
+  Agent calls it directly (native binding, stdio, or API) ✅
 ```
 
 **One `aai.json` file turns your app from invisible to fully Agent-accessible.**
@@ -93,7 +93,8 @@ With AAI, users delegate daily work to AI Agents instead of operating applicatio
 3. Gateway scans `/Applications/` on startup and builds a list of AAI-compatible desktop apps
 4. Agent discovers available apps and tools on demand; web app descriptors are fetched automatically when needed
 5. Gateway executes the call:
-   - **Desktop apps** → JSON over native IPC, OS-managed authorization
+   - **Desktop apps** → JSON over native bindings (Apple Events / DBus / COM), OS-managed authorization
+   - **Local adapters** → JSON over stdio
    - **Web Apps** → JSON over HTTPS, Gateway-managed OAuth 2.1 authorization
 
 Both humans (via GUI) and Agents (via AAI) access the same core application logic. Neither interferes with the other.

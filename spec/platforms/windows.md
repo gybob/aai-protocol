@@ -163,7 +163,10 @@ Write-Output $result
     "defaultLang": "en",
     "description": "Brief description of your app"
   },
-  "execution": { "type": "ipc" },
+  "execution": {
+    "type": "com",
+    "progId": "YourApp.AAIHandler"
+  },
   "tools": [
     {
       "name": "createDocument",

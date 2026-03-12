@@ -165,7 +165,13 @@ If your app needs elevated permissions, create `/usr/share/polkit-1/actions/com.
     "defaultLang": "en",
     "description": "Brief description of your app"
   },
-  "execution": { "type": "ipc" },
+  "execution": {
+    "type": "dbus",
+    "service": "com.yourcompany.yourapp",
+    "objectPath": "/com/yourcompany/executor",
+    "interface": "com.aai.Executor",
+    "bus": "session"
+  },
   "tools": [
     {
       "name": "createFile",

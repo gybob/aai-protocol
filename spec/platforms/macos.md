@@ -154,7 +154,12 @@ See [Error Codes](../error-codes.md) for standard codes.
     "name": "Your App",
     "description": "Brief description of your app"
   },
-  "execution": { "type": "ipc" },
+  "execution": {
+    "type": "apple-events",
+    "bundleId": "com.yourcompany.yourapp",
+    "eventClass": "AAI ",
+    "eventId": "call"
+  },
   "tools": [
     {
       "name": "search_items",

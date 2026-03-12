@@ -51,6 +51,8 @@ On startup, Gateway:
 
 Startup scan typically completes in under one second.
 
+> `stdio` is part of the AAI execution model, but `aai-gateway` may choose to implement it incrementally. The protocol does not require all bindings to ship at once.
+
 ## MCP Interface
 
 Gateway exposes **tools only** (no resources). This simplifies the agent workflow and ensures all capabilities are discoverable via `tools/list`.

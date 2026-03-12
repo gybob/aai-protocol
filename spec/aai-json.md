@@ -4,7 +4,6 @@
 
 `aai.json` defines application capabilities using [JSON Schema](https://json-schema.org/). Each file describes a single platform deployment.
 
-
 ## Structure
 
 ```json
@@ -22,7 +21,7 @@
     "description": "Brief description"
   },
   "execution": {
-    "type": "ipc"
+    "type": "apple-events"
   },
   "tools": [
     {
@@ -54,12 +53,12 @@
 
 ### Platform Values
 
-| Platform  | Execution Type | Authorization    |
-| --------- | -------------- | ---------------- |
-| `macos`   | `ipc`          | Operating System |
-| `linux`   | `ipc`          | Operating System |
-| `windows` | `ipc`          | Operating System |
-| `web`     | `http`         | Auth config      |
+| Platform  | Typical Execution Type | Authorization    |
+| --------- | ---------------------- | ---------------- |
+| `macos`   | `apple-events`         | Operating System |
+| `linux`   | `dbus`                 | Operating System |
+| `windows` | `com`                  | Operating System |
+| `web`     | `http`                 | Auth config      |
 
 ### app Fields
 
@@ -117,11 +116,110 @@ The `aliases` array provides additional keywords for fuzzy matching:
 
 ### execution Fields
 
-| Field            | Type   | Required | Description              |
-| ---------------- | ------ | -------- | ------------------------ |
-| `type`           | string | Yes      | `ipc` or `http`          |
-| `baseUrl`        | string | web only | Base URL                 |
-| `defaultHeaders` | object | No       | Headers for all requests |
+| Field            | Type   | Required           | Description                                |
+| ---------------- | ------ | ------------------ | ------------------------------------------ |
+| `type`           | string | Yes                | `http`, `stdio`, `acp`, `apple-events`, `dbus`, or `com` |
+| `baseUrl`        | string | http only          | Base URL                                   |
+| `defaultHeaders` | object | No                 | Headers for all requests                   |
+| `command`        | string | stdio only         | Command to start local adapter             |
+| `args`           | array  | No                 | Process args for stdio                     |
+| `env`            | object | No                 | Environment variables for stdio/acp        |
+| `timeout`        | number | No                 | Optional execution timeout in milliseconds |
+| `start`          | object | acp only           | ACP process start config                   |
+| `bundleId`       | string | apple-events only  | Target app bundle identifier               |
+| `eventClass`     | string | apple-events only  | Four-character Apple Event class           |
+| `eventId`        | string | apple-events only  | Four-character Apple Event ID              |
+| `service`        | string | dbus only          | DBus service name                          |
+| `objectPath`     | string | dbus only          | DBus object path                           |
+| `interface`      | string | dbus only          | DBus interface name                        |
+| `bus`            | string | dbus only          | `session` or `system`                      |
+| `progId`         | string | com only           | COM ProgID                                 |
+
+### execution Examples
+
+#### HTTP
+
+```json
+{
+  "execution": {
+    "type": "http",
+    "baseUrl": "https://api.example.com/v1",
+    "defaultHeaders": { "Content-Type": "application/json" }
+  }
+}
+```
+
+#### Stdio
+
+```json
+{
+  "execution": {
+    "type": "stdio",
+    "command": "aai-anything-example",
+    "args": ["--exec"],
+    "timeout": 120000
+  }
+}
+```
+
+### execution.start Fields (acp only)
+
+| Field     | Type                | Required | Description                |
+| --------- | ------------------- | -------- | -------------------------- |
+| `command` | string              | Yes      | CLI command to start agent |
+| `args`    | string[]            | No       | Command-line arguments     |
+| `env`     | object (string map) | No       | Environment variables      |
+
+```json
+{
+  "execution": {
+    "type": "acp",
+    "start": {
+      "command": "opencode",
+      "args": ["--mcp"],
+      "env": {}
+    }
+  }
+}
+```
+
+#### Apple Events
+
+```json
+{
+  "execution": {
+    "type": "apple-events",
+    "bundleId": "com.example.reminders",
+    "eventClass": "AAI ",
+    "eventId": "call"
+  }
+}
+```
+
+#### DBus
+
+```json
+{
+  "execution": {
+    "type": "dbus",
+    "service": "com.example.files",
+    "objectPath": "/com/example/files/Executor",
+    "interface": "com.example.files.Executor",
+    "bus": "session"
+  }
+}
+```
+
+#### COM
+
+```json
+{
+  "execution": {
+    "type": "com",
+    "progId": "Example.Application"
+  }
+}
+```
 
 ### tools[] Fields
 
@@ -327,7 +425,7 @@ The `version` field follows [Semantic Versioning](https://semver.org/): `MAJOR.M
     "description": "Task and reminder management",
     "aliases": ["reminder", "todo", "待办", "tasks"]
   },
-  "execution": { "type": "ipc" },
+  "execution": { "type": "apple-events" },
   "tools": [ ... ]
 }
 ```

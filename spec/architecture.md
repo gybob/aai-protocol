@@ -16,9 +16,10 @@ flowchart TB
         G5["Local Cache<br/>Web descriptors + Name mappings"]
 
         subgraph G4["Execution Layer"]
-            E1["macOS Executor<br/>JSON over Apple Events"]
+            E1["Native Executor<br/>Apple Events / DBus / COM"]
             E2["Web Executor<br/>JSON over HTTP"]
-            E3["..."]
+            E3["ACP Executor<br/>stdio JSON-RPC"]
+            E4["Stdio Executor<br/>JSON over stdin/stdout"]
         end
 
         G1 --> G2 --> G3 --> G4
@@ -30,7 +31,8 @@ flowchart TB
     end
 
     subgraph Apps["Applications"]
-        D1["macOS App<br/>Apple Events + Bundle aai.json"]
+        D1["Desktop App<br/>Native binding + bundled aai.json"]
+        S1["Local Adapter<br/>stdio + aai.json"]
         W1["Web App<br/>HTTP API + .well-known/aai.json"]
         X1["..."]
     end
@@ -38,8 +40,10 @@ flowchart TB
     Agent -->|"MCP over Stdio (JSON-RPC)"| G1
     G3 -->|"Request consent"| U1
     U1 -->|"Grant/Deny"| G3
-    E1 -->|"Apple Events"| D1
+    E1 -->|"Apple Events / DBus / COM"| D1
     E2 -->|"HTTPS"| W1
+    E3 -->|"ACP over stdio"| X1
+    E4 -->|"stdin/stdout JSON"| S1
     G5 <-->|"Fetch on demand"| W1
 
     style Agent fill:#e1f5fe
@@ -72,9 +76,10 @@ Gateway uses platform-specific executors:
 | Platform | Transport | App Authorization |
 |----------|-----------|-------------------|
 | macOS | JSON over Apple Events | Operating System |
+| Linux | JSON over DBus | Operating System |
+| Windows | JSON over COM | Operating System |
 | web | JSON over HTTPS | OAuth 2.1 |
-| linux | JSON over IPC (TBD) | Operating System |
-| windows | JSON over IPC (TBD) | Operating System |
+| local adapters | JSON over stdio | Adapter-defined |
 
 ### 4. Zero-Install Gateway
 
@@ -88,6 +93,9 @@ Desktop apps:
 2. Agent → resources/list    → Gateway returns discovered desktop apps
 3. Agent → resources/read    → Gateway returns app descriptor
 4. Agent → tools/call        → Gateway checks consent → Apple Events → returns result
+
+Local adapters:
+1. Agent → tools/call        → Gateway checks consent → stdio JSON request → returns result
 
 Web apps:
 1. Agent → resources/read("https://notion.so")
