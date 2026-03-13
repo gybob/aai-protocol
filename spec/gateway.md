@@ -163,14 +163,15 @@ First execution triggers native consent dialog:
 
 ```
 ┌─────────────────────────────────────────┐
-│ ⚠️ AAI Gateway 请求权限                 │
+│ ⚠️ Agent authorization request         │
 │                                         │
-│ 应用: 提醒事项 │
+│ Caller: Claude Desktop                  │
 │                                         │
-│ 请求执行操作:                           │
-│ create_reminder                         │
+│ App: Reminders                          │
+│ Tool: create_reminder                   │
+│ Description: Create a reminder item     │
 │                                         │
-│ [拒绝] [授权此操作] [授权所有操作]      │
+│ [Deny] [Authorize This Tool] [Authorize All Tools] │
 └─────────────────────────────────────────┘
 ```
 

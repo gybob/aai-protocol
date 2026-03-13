@@ -284,7 +284,7 @@ The `aliases` array provides additional keywords for fuzzy matching:
 | `name`         | string | Yes      | Header/param name               |
 | `prefix`       | string | No       | Value prefix (e.g., `"Bearer"`) |
 | `obtainUrl`    | string | Yes      | URL to get API key              |
-| `instructions` | object | No       | User guidance                   |
+| `instructions` | string | No       | User guidance returned to the agent when the user requests help |
 
 ```json
 {
@@ -294,10 +294,7 @@ The `aliases` array provides additional keywords for fuzzy matching:
       "location": "header",
       "name": "X-Auth-Token",
       "obtainUrl": "https://example.com/settings/tokens",
-      "instructions": {
-        "short": "Get your API key from settings",
-        "helpUrl": "https://example.com/docs/api"
-      }
+      "instructions": "Open settings, create a token, copy it, and paste it into the gateway prompt."
     }
   }
 }
@@ -311,7 +308,7 @@ The `aliases` array provides additional keywords for fuzzy matching:
 | `tokenEndpoint` | string | Yes      | URL to exchange credentials for token                          |
 | `tokenType`     | string | Yes      | `"tenantAccessToken"`, `"appAccessToken"`, `"userAccessToken"` |
 | `expiresIn`     | number | No       | Token lifetime in seconds (default: 7200)                      |
-| `instructions`  | object | No       | User guidance                                                  |
+| `instructions`  | string | No       | User guidance returned to the agent when the user requests help |
 
 ```json
 {
@@ -321,10 +318,7 @@ The `aliases` array provides additional keywords for fuzzy matching:
       "tokenEndpoint": "https://api.example.com/auth/token",
       "tokenType": "tenantAccessToken",
       "expiresIn": 7200,
-      "instructions": {
-        "short": "Get App ID and Secret from developer console",
-        "helpUrl": "https://example.com/developers"
-      }
+      "instructions": "Open the developer console, find the App ID and App Secret, then paste them into the gateway prompt."
     }
   }
 }
@@ -353,15 +347,6 @@ The `aliases` array provides additional keywords for fuzzy matching:
   }
 }
 ```
-
-### instructions Fields
-
-| Field           | Type   | Required | Description               |
-| --------------- | ------ | -------- | ------------------------- |
-| `short`         | string | Yes      | Brief instruction         |
-| `detailed`      | string | No       | Detailed steps            |
-| `helpUrl`       | string | No       | Link to documentation     |
-| `screenshotUrl` | string | No       | Screenshot of the process |
 
 ## Parameter Schema
 
@@ -499,10 +484,7 @@ The `version` field follows [Semantic Versioning](https://semver.org/): `MAJOR.M
       "location": "header",
       "name": "X-Auth-Token",
       "obtainUrl": "https://www.yuque.com/settings/tokens",
-      "instructions": {
-        "short": "Get your API token from Settings > Tokens",
-        "helpUrl": "https://www.yuque.com/settings/tokens"
-      }
+      "instructions": "Open Settings > Tokens, create a token, copy it immediately, and paste it into the gateway prompt."
     }
   },
   "tools": [ ... ]
@@ -537,10 +519,7 @@ The `version` field follows [Semantic Versioning](https://semver.org/): `MAJOR.M
       "tokenEndpoint": "https://open.feishu.cn/open-apis/auth/v3/tenantAccessToken/internal",
       "tokenType": "tenantAccessToken",
       "expiresIn": 7200,
-      "instructions": {
-        "short": "Get App ID and App Secret from Feishu Open Platform",
-        "helpUrl": "https://open.feishu.cn/app"
-      }
+      "instructions": "Open Feishu Open Platform, copy the App ID and App Secret from your app settings, then paste them into the gateway prompt."
     }
   },
   "tools": [ ... ]

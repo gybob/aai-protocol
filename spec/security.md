@@ -188,55 +188,39 @@ Gateway MUST display the following information:
 
 ### Required Information
 
-| Field            | Source             | Description                           |
-| ---------------- | ------------------ | ------------------------------------- |
-| Caller Name      | MCP clientInfo     | Which MCP client is making request    |
-| App Name         | `app.name`         | Which app is exposing this tool       |
-| App ID           | `app.id`           | Unique identifier                     |
-| Tool Name        | `tool.name`        | Tool identifier                       |
-| Tool Description | `tool.description` | What the tool does                    |
-| Parameters       | `tool.parameters`  | What data agent can pass to tool      |
-| Returns          | `tool.returns`     | What data tool returns (if sensitive) |
+| Field            | Source             | Description                        |
+| ---------------- | ------------------ | ---------------------------------- |
+| Caller Name      | MCP clientInfo     | Which MCP client is making request |
+| App Name         | `app.name`         | Which app is being authorized      |
+| Tool Name        | `tool.name`        | Which tool is being authorized     |
+| Tool Description | `tool.description` | What the tool does                 |
 
 ### UI Example
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ ⚠️  Claude Desktop requests tool access                     │
+│ ⚠️  Agent authorization request                             │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│ App: Example Mail (com.example.mail)                        │
+│ Caller: Claude Desktop                                      │
 │                                                             │
-│ Claude Desktop wants to use:                                │
+│ App: Example Mail                                           │
 │                                                             │
-│ ┌─────────────────────────────────────────────────────────┐ │
-│ │ sendEmail                                               │ │
-│ │                                                         │ │
-│ │ Send an email on behalf of the user                     │ │
-│ │                                                         │ │
-│ │ Parameters:                                             │ │
-│ │ • to: Recipient email addresses                         │ │
-│ │ • subject: Email subject line                           │ │
-│ │ • body: Email body content                              │ │
-│ │                                                         │ │
-│ │ ⚠️ Claude Desktop can send emails to anyone             │ │
-│ └─────────────────────────────────────────────────────────┘ │
+│ Tool: sendEmail                                             │
+│ Description: Send an email on behalf of the user           │
 │                                                             │
-│ [Authorize Tool]  [Authorize All Tools]  [Deny]             │
-│                                                             │
-│ ☐ Remember this decision                                   │
+│ [Deny]  [Authorize This Tool]  [Authorize All Tools]        │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ### User Choices
 
-| Option                  | Behavior                                        |
-| ----------------------- | ----------------------------------------------- |
-| **Authorize Tool**      | Grant access to this specific tool only         |
-| **Authorize All Tools** | Grant access to all tools from this app         |
-| **Deny**                | Reject access, agent cannot use this tool       |
-| **Remember**            | Persist decision, don't ask again for this tool |
+| Option                  | Behavior                                  |
+| ----------------------- | ----------------------------------------- |
+| **Authorize This Tool** | Grant access to this specific tool only   |
+| **Authorize All Tools** | Grant access to all tools from this app   |
+| **Deny**                | Reject access, agent cannot use this tool |
 
 ## Secure Storage
 
@@ -561,11 +545,16 @@ sequenceDiagram
         W-->>G: API response
     else no apiKey
         G->>U: Show credential dialog
-        Note over U: User enters API key
-        U->>G: API key submitted
-        G->>G: Store apiKey in keystore
-        G->>W: API request with apiKey in header
-        W-->>G: API response
+        alt user clicks Help
+            U->>G: Help requested
+            G-->>A: AUTH_REQUIRED + instructions + preferred_locale
+            Note over A: Agent explains the steps in the user's preferred language
+        else user enters API key
+            U->>G: API key submitted
+            G->>G: Store apiKey in keystore
+            G->>W: API request with apiKey in header
+            W-->>G: API response
+        end
     end
 
     G-->>A: tool result
@@ -581,9 +570,6 @@ Gateway shows a native dialog prompting for the API key:
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │ Enter API Key for Notion                                    │
-│                                                             │
-│ Get your Integration Secret from Notion's My Integrations   │
-│ page.                                                       │
 │                                                             │
 │ ┌─────────────────────────────────────────────────────────┐ │
 │ │ Paste your API key here                                 │ │
@@ -605,14 +591,13 @@ Gateway shows a native dialog prompting for the API key:
       "name": "Authorization",
       "prefix": "Bearer",
       "obtainUrl": "https://www.notion.so/my-integrations",
-      "instructions": {
-        "short": "Get your Integration Secret from Notion",
-        "helpUrl": "https://www.notion.so/my-integrations"
-      }
+      "instructions": "Open My Integrations, create an internal integration, copy the Integration Secret, share the target pages with the integration, then paste the secret into the gateway prompt."
     }
   }
 }
 ```
+
+If the user clicks `Help`, the gateway MUST return `AUTH_REQUIRED` with the `instructions` string and the user's preferred locale so the agent can explain the setup steps before retrying.
 
 #### Storage Format
 
@@ -659,15 +644,19 @@ sequenceDiagram
         G->>W: API request with token
         W-->>G: API response
     else no credentials
-        G->>U: Show credential dialog (App ID)
-        U->>G: App ID submitted
-        G->>U: Show credential dialog (App Secret)
-        U->>G: App Secret submitted
-        G->>W: POST /auth/token (appId + appSecret)
-        W-->>G: token
-        G->>G: Store credentials and token
-        G->>W: API request with token
-        W-->>G: API response
+        G->>U: Show credential dialog (App ID / App Secret)
+        alt user clicks Help
+            U->>G: Help requested
+            G-->>A: AUTH_REQUIRED + instructions + preferred_locale
+            Note over A: Agent explains how to obtain the credentials
+        else user submits credentials
+            U->>G: App ID + App Secret submitted
+            G->>W: POST /auth/token (appId + appSecret)
+            W-->>G: token
+            G->>G: Store credentials and token
+            G->>W: API request with token
+            W-->>G: API response
+        end
     end
 
     G-->>A: tool result
@@ -683,8 +672,6 @@ sequenceDiagram
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │ Enter App ID for Feishu                                     │
-│                                                             │
-│ Get your App ID and App Secret from Feishu Open Platform.   │
 │                                                             │
 │ ┌─────────────────────────────────────────────────────────┐ │
 │ │                                                         │ │
@@ -723,14 +710,13 @@ sequenceDiagram
       "tokenEndpoint": "https://open.feishu.cn/open-apis/auth/v3/tenantAccessToken/internal",
       "tokenType": "tenantAccessToken",
       "expiresIn": 7200,
-      "instructions": {
-        "short": "Get App ID and App Secret from Feishu Open Platform",
-        "helpUrl": "https://open.feishu.cn/app"
-      }
+      "instructions": "Open Feishu Open Platform, locate your app settings, copy the App ID and App Secret, then paste them into the gateway prompts."
     }
   }
 }
 ```
+
+If the user clicks `Help`, the gateway MUST return `AUTH_REQUIRED` with the `instructions` string and the user's preferred locale so the agent can explain the setup steps before retrying.
 
 #### Token Request
 
@@ -796,11 +782,16 @@ sequenceDiagram
         W-->>G: API response
     else no cookies
         G->>U: Show credential dialog
-        Note over U: User extracts cookies from browser
-        U->>G: Cookies submitted
-        G->>G: Store cookies in keystore
-        G->>W: API request with cookies
-        W-->>G: API response
+        alt user clicks Help
+            U->>G: Help requested
+            G-->>A: AUTH_REQUIRED + instructions + preferred_locale
+            Note over A: Agent explains how to extract the cookies
+        else user submits cookies
+            U->>G: Cookies submitted
+            G->>G: Store cookies in keystore
+            G->>W: API request with cookies
+            W-->>G: API response
+        end
     end
 
     G-->>A: tool result
@@ -813,14 +804,7 @@ sequenceDiagram
 │ 🍪 Xiaohongshu Authentication                                │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│ Enter Cookies for Xiaohongshu                                │
-│                                                             │
-│ 1. Login to Xiaohongshu at https://xiaohongshu.com          │
-│ 2. Open browser DevTools (F12)                              │
-│ 3. Go to Application > Cookies                               │
-│ 4. Copy the required cookies                                 │
-│                                                             │
-│ Required: web_session, websectiga                           │
+│ Enter Cookies for Xiaohongshu                               │
 │                                                             │
 │ ┌─────────────────────────────────────────────────────────┐ │
 │ │ e.g., web_session=xxx; websectiga=yyy                   │ │
@@ -846,6 +830,8 @@ sequenceDiagram
   }
 }
 ```
+
+If the user clicks `Help`, the gateway MUST return `AUTH_REQUIRED` with the `instructions` string and the user's preferred locale so the agent can guide the user through cookie extraction.
 
 #### Storage Format
 
