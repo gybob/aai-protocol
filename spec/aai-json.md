@@ -1,531 +1,369 @@
-# aai.json Descriptor
+# AAI JSON
 
-## Overview
+**Spec version:** 0.3.0  
+**Status:** Draft
 
-`aai.json` defines application capabilities using [JSON Schema](https://json-schema.org/). Each file describes a single platform deployment.
+`aai.json` is the discovery and capability manifest for AAI-compliant apps. It is the **only** file a gateway ever needs to find, trust, and use an app.
 
-## Structure
+---
+
+## Core Principles
+
+| Principle | Implication |
+|---|---|
+| **Single URL** | One URL per app. Apps can live anywhere — CDN, static hosting, serverless. |
+| **Single manifest** | No app registry. No package managers. The manifest is the app. |
+| **Human-readable by design** | `summary` and `keywords` are for AI consumption — but they are plain text, not binary blobs. |
+| **Zero coupling** | The gateway does not install, run, or manage app lifecycle. It only fetches a manifest and executes operations on demand. |
+| **Consent-first** | Sensitive capabilities require user consent before execution. The manifest declares what requires it. |
+| **Progressive disclosure** | Raw tool definitions are never exposed upfront. Only app-level metadata is visible; detailed guides are fetched on demand. |
+
+---
+
+## App-Level vs Tool-Level Exposure
+
+AAI Gateway operates at **app level**, not tool level. Tools are grouped into apps and only the app interface is visible initially.
+
+```
+┌─────────────────────────────────────────────────────┐
+│              AAI Gateway (MCP Client)               │
+├─────────────────────────────────────────────────────┤
+│  ListTools → only apps visible (app:*)              │
+│  Raw tool definitions NOT exposed upfront           │
+├─────────────────────────────────────────────────────┤
+│  Call app:filesystem                                │
+│  → returns app guide (operation list + details)    │
+│  → user/AI selects operation                       │
+│  → aai:exec with operation name + args             │
+│  → gateway calls downstream tool                   │
+└─────────────────────────────────────────────────────┘
+```
+
+This keeps context small. The AI sees an app description, not dozens of raw tool schemas.
+
+---
+
+## Exposure Modes
+
+Apps support two exposure modes, chosen by the user at import time:
+
+| Mode | Description | Use When |
+|---|---|---|
+| `summary` | Natural language description of the app's purpose and capabilities | You want the AI to automatically understand when to use this app |
+| `keywords` | Compact keyword set triggering app usage | You want to explicitly mention keywords to trigger; leaves room for more tools |
+
+Both modes expose the same app interface — only the trigger mechanism differs.
+
+---
+
+## Manifest Structure
 
 ```json
 {
-  "schemaVersion": "1.0",
-  "version": "1.0.0",
-  "platform": "macos",
-  "app": {
-    "id": "com.example.app",
-    "name": {
-      "en": "Example App",
-      "zh-CN": "示例应用"
-    },
-    "defaultLang": "en",
-    "description": "Brief description"
-  },
-  "execution": {
-    "type": "apple-events"
-  },
-  "tools": [
-    {
-      "name": "search",
-      "description": "Search for items",
-      "parameters": {
-        "type": "object",
-        "properties": { ... },
-        "required": [ ... ]
-      }
-    }
-  ]
+  "aai": "0.3",
+  "app": { ... },
+  "exposure": { ... },
+  "access": { ... },
+  "consent": { ... }
 }
 ```
 
-## Field Reference
+### Top-Level Fields
 
-### Root Fields
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `aai` | string | ✅ | Format version. Must be `"0.3"`. |
+| `app` | App | ✅ | App identity and localization. |
+| `exposure` | Exposure | ✅ | What the gateway exposes to AI clients. |
+| `access` | Access | ✅ | How the gateway reaches the app backend. |
+| `consent` | Consent | ❌ | Capabilities requiring user consent before use. |
 
-| Field           | Type   | Required | Description                      |
-| --------------- | ------ | -------- | -------------------------------- |
-| `schemaVersion` | string | Yes      | AAI spec version (`"1.0"`)       |
-| `version`       | string | Yes      | Descriptor version (semver)      |
-| `platform`      | string | Yes      | Target platform                  |
-| `app`           | object | Yes      | Application metadata             |
-| `execution`     | object | No       | Execution configuration          |
-| `auth`          | object | No       | Authentication config (web only) |
-| `tools`         | array  | Yes      | Tool definitions                 |
+---
 
-### Platform Values
-
-| Platform  | Typical Execution Type | Authorization    |
-| --------- | ---------------------- | ---------------- |
-| `macos`   | `apple-events`         | Operating System |
-| `linux`   | `dbus`                 | Operating System |
-| `windows` | `com`                  | Operating System |
-| `web`     | `http`                 | Auth config      |
-
-### app Fields
-
-| Field         | Type     | Required | Description                                                                          |
-| ------------- | -------- | -------- | ------------------------------------------------------------------------------------ |
-| `id`          | string   | Yes      | Reverse-DNS identifier                                                               |
-| `name`        | object   | Yes      | Internationalized name object. See [Internationalized Name](#internationalized-name) |
-| `defaultLang` | string   | Yes      | Default language tag (must exist in `name`)                                          |
-| `description` | string   | Yes      | Brief description in English (for agent consumption)                                 |
-| `aliases`     | string[] | No       | Alternative names for app discovery                                                  |
-
-#### Internationalized Name
-
-The `name` field uses a structured object with [BCP 47](https://tools.ietf.org/html/bcp47) language tags:
+## App
 
 ```json
 {
   "name": {
-    "en": "Reminders",
-    "zh-CN": "提醒事项",
-    "zh-TW": "提醒事項",
-    "ja": "リマインダー"
+    "en": "Filesystem",
+    "zh": "文件系统"
   },
-  "defaultLang": "en"
+  "description": "Read, write, and navigate the local filesystem."
 }
 ```
 
-**Language Tags** (lowercase language, uppercase region):
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `name` | Record\<string, string\> | ✅ | Localized app names. Must include at least `"en"`. |
+| `description` | string | ❌ | Short description for general discovery (shown in remote:discover results). |
 
-- `en` - English
-- `zh-CN` - Simplified Chinese (China)
-- `zh-TW` - Traditional Chinese (Taiwan)
-- `zh-HK` - Traditional Chinese (Hong Kong)
-- `ja` - Japanese
-- `ko` - Korean
-- `de` - German
-- `fr` - French
-- `es` - Spanish
+---
 
-**Fallback Logic**:
-
-1. Exact match: `name[locale]`
-2. Language family: `zh-TW` → `zh-CN`
-3. Default: `name[defaultLang]`
-
-#### Aliases
-
-The `aliases` array provides additional keywords for fuzzy matching:
+## Exposure
 
 ```json
 {
-  "aliases": ["reminder", "todo", "待办", "tasks", "task manager"]
+  "mode": "summary",
+  "summary": "Read, write, and navigate the local filesystem. Use for checking configs, reading project files, or writing logs.",
+  "keywords": ["filesystem", "file", "read", "write", "edit", "folder", "directory"]
 }
 ```
 
-### execution Fields
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `mode` | `"summary"` \| `"keywords"` | ✅ | How this app is exposed to AI clients. |
+| `summary` | string | When `mode` is `"summary"` | Natural language description of what this app does and when to use it. |
+| `keywords` | string[] | When `mode` is `"keywords"` | Trigger keywords. The AI uses these to decide when to call the app. |
 
-| Field            | Type   | Required           | Description                                |
-| ---------------- | ------ | ------------------ | ------------------------------------------ |
-| `type`           | string | Yes                | `http`, `stdio`, `acp`, `apple-events`, `dbus`, or `com` |
-| `baseUrl`        | string | http only          | Base URL                                   |
-| `defaultHeaders` | object | No                 | Headers for all requests                   |
-| `command`        | string | stdio only         | Command to start local adapter             |
-| `args`           | array  | No                 | Process args for stdio                     |
-| `env`            | object | No                 | Environment variables for stdio/acp        |
-| `timeout`        | number | No                 | Optional execution timeout in milliseconds |
-| `start`          | object | acp only           | ACP process start config                   |
-| `bundleId`       | string | apple-events only  | Target app bundle identifier               |
-| `eventClass`     | string | apple-events only  | Four-character Apple Event class           |
-| `eventId`        | string | apple-events only  | Four-character Apple Event ID              |
-| `service`        | string | dbus only          | DBus service name                          |
-| `objectPath`     | string | dbus only          | DBus object path                           |
-| `interface`      | string | dbus only          | DBus interface name                        |
-| `bus`            | string | dbus only          | `session` or `system`                      |
-| `progId`         | string | com only           | COM ProgID                                 |
+### Mode Selection Guide
 
-### execution Examples
+**Use `summary` when:**
+- The app has a clear, distinct purpose
+- You want the AI to infer when to use it without explicit trigger words
+- Context window efficiency is a priority
 
-#### HTTP
+**Use `keywords` when:**
+- The app overlaps with many others (sharing keywords is fine)
+- You want explicit, precise control over triggering
+- You plan to have many apps and need fine-grained disambiguation
+
+---
+
+## Access
 
 ```json
 {
-  "execution": {
-    "type": "http",
-    "baseUrl": "https://api.example.com/v1",
-    "defaultHeaders": { "Content-Type": "application/json" }
+  "protocol": "mcp",
+  "config": {
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-filesystem", "/repo"]
   }
 }
 ```
 
-#### Stdio
+### Protocol: `mcp`
+
+For local stdio MCP servers:
 
 ```json
 {
-  "execution": {
-    "type": "stdio",
-    "command": "aai-anything-example",
-    "args": ["--exec"],
-    "timeout": 120000
+  "protocol": "mcp",
+  "config": {
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-filesystem", "/repo"],
+    "env": { "DEBUG": "1" },
+    "cwd": "/workspace"
   }
 }
 ```
 
-### execution.start Fields (acp only)
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `command` | string | ✅ | Executable to launch. |
+| `args` | string[] | ❌ | Command arguments. |
+| `env` | Record\<string, string\> | ❌ | Environment variables. |
+| `cwd` | string | ❌ | Working directory. |
 
-| Field     | Type                | Required | Description                |
-| --------- | ------------------- | -------- | -------------------------- |
-| `command` | string              | Yes      | CLI command to start agent |
-| `args`    | string[]            | No       | Command-line arguments     |
-| `env`     | object (string map) | No       | Environment variables      |
+For remote MCP servers:
 
 ```json
 {
-  "execution": {
-    "type": "acp",
-    "start": {
-      "command": "opencode",
-      "args": ["--mcp"],
-      "env": {}
-    }
+  "protocol": "mcp",
+  "config": {
+    "url": "https://mcp.example.com/transport",
+    "headers": { "Authorization": "Bearer <token>" }
   }
 }
 ```
 
-#### Apple Events
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `url` | string | ✅ | Remote MCP endpoint URL. |
+| `headers` | Record\<string, string\> | ❌ | HTTP headers (e.g., Authorization). |
+| `transport` | `"streamable-http"` \| `"sse"` | ❌ | Transport type. Defaults to `"streamable-http"`. |
+
+### Protocol: `acp-agent`
+
+For ACP agent backends:
 
 ```json
 {
-  "execution": {
-    "type": "apple-events",
-    "bundleId": "com.example.reminders",
-    "eventClass": "AAI ",
-    "eventId": "call"
+  "protocol": "acp-agent",
+  "config": {
+    "agentId": "filesystem-agent",
+    "command": "uvx",
+    "args": ["aai-agent-filesystem"],
+    "env": { "FILESYSTEM_ROOT": "/repo" }
   }
 }
 ```
 
-#### DBus
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `agentId` | string | ✅ | ACP agent identifier. |
+| `command` | string | ✅ | Executable to launch. |
+| `args` | string[] | ❌ | Command arguments. |
+| `env` | Record\<string, string\> | ❌ | Environment variables. |
+
+### Protocol: `cli`
+
+For CLI-backed apps:
 
 ```json
 {
-  "execution": {
-    "type": "dbus",
-    "service": "com.example.files",
-    "objectPath": "/com/example/files/Executor",
-    "interface": "com.example.files.Executor",
-    "bus": "session"
+  "protocol": "cli",
+  "config": {
+    "command": "gh",
+    "subcommands": ["issue", "pr", "repo"]
   }
 }
 ```
 
-#### COM
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `command` | string | ✅ | CLI executable. |
+| `subcommands` | string[] | ❌ | Known subcommands for guide generation. |
+
+### Protocol: `skill`
+
+For skill-backed apps (referencing a skill by path or URL):
 
 ```json
 {
-  "execution": {
-    "type": "com",
-    "progId": "Example.Application"
+  "protocol": "skill",
+  "config": {
+    "path": "/path/to/skill"
   }
 }
 ```
 
-### tools[] Fields
-
-| Field         | Type   | Required | Description                  |
-| ------------- | ------ | -------- | ---------------------------- |
-| `name`        | string | Yes      | Tool identifier (camelCase)  |
-| `description` | string | Yes      | What the tool does           |
-| `parameters`  | object | Yes      | JSON Schema for parameters   |
-| `returns`     | object | No       | JSON Schema for return value |
-| `execution`   | object | web only | Tool-specific HTTP config    |
-
-### tools[].execution Fields (web only)
-
-| Field     | Type   | Description        |
-| --------- | ------ | ------------------ |
-| `path`    | string | URL path           |
-| `method`  | string | HTTP method        |
-| `headers` | object | Additional headers |
-
-## Authentication (web only)
-
-### Auth Types
-
-| Type            | Use Case           | Description                                 |
-| --------------- | ------------------ | ------------------------------------------- |
-| `oauth2`        | User authorization | OAuth 2.0 with PKCE                         |
-| `apiKey`        | Static API token   | Never expires (e.g., Notion, Yuque)         |
-| `appCredential` | Enterprise apps    | App ID + Secret to get token (e.g., Feishu) |
-| `cookie`        | No official API    | Browser session cookies (e.g., Xiaohongshu) |
-
-### oauth2 Fields
-
-| Field                   | Type     | Required | Description         |
-| ----------------------- | -------- | -------- | ------------------- |
-| `type`                  | string   | Yes      | `"oauth2"`          |
-| `authorizationEndpoint` | string   | Yes      | OAuth authorize URL |
-| `tokenEndpoint`         | string   | Yes      | Token exchange URL  |
-| `scopes`                | string[] | Yes      | Required scopes     |
-| `pkce`                  | object   | No       | PKCE config         |
-| `pkce.method`           | string   | Yes      | `"S256"`            |
+Or for remote skills:
 
 ```json
 {
-  "auth": {
-    "type": "oauth2",
-    "oauth2": {
-      "authorizationEndpoint": "https://example.com/oauth/authorize",
-      "tokenEndpoint": "https://example.com/oauth/token",
-      "scopes": ["read", "write"],
-      "pkce": { "method": "S256" }
-    }
+  "protocol": "skill",
+  "config": {
+    "url": "https://example.com/skill"
   }
-}
-```
-
-### apiKey Fields
-
-| Field          | Type   | Required | Description                     |
-| -------------- | ------ | -------- | ------------------------------- |
-| `type`         | string | Yes      | `"apiKey"`                      |
-| `location`     | string | Yes      | `"header"` or `"query"`         |
-| `name`         | string | Yes      | Header/param name               |
-| `prefix`       | string | No       | Value prefix (e.g., `"Bearer"`) |
-| `obtainUrl`    | string | Yes      | URL to get API key              |
-| `instructions` | string | No       | User guidance returned to the agent when the user requests help |
-
-```json
-{
-  "auth": {
-    "type": "apiKey",
-    "apiKey": {
-      "location": "header",
-      "name": "X-Auth-Token",
-      "obtainUrl": "https://example.com/settings/tokens",
-      "instructions": "Open settings, create a token, copy it, and paste it into the gateway prompt."
-    }
-  }
-}
-```
-
-### appCredential Fields
-
-| Field           | Type   | Required | Description                                                    |
-| --------------- | ------ | -------- | -------------------------------------------------------------- |
-| `type`          | string | Yes      | `"appCredential"`                                              |
-| `tokenEndpoint` | string | Yes      | URL to exchange credentials for token                          |
-| `tokenType`     | string | Yes      | `"tenantAccessToken"`, `"appAccessToken"`, `"userAccessToken"` |
-| `expiresIn`     | number | No       | Token lifetime in seconds (default: 7200)                      |
-| `instructions`  | string | No       | User guidance returned to the agent when the user requests help |
-
-```json
-{
-  "auth": {
-    "type": "appCredential",
-    "appCredential": {
-      "tokenEndpoint": "https://api.example.com/auth/token",
-      "tokenType": "tenantAccessToken",
-      "expiresIn": 7200,
-      "instructions": "Open the developer console, find the App ID and App Secret, then paste them into the gateway prompt."
-    }
-  }
-}
-```
-
-### cookie Fields
-
-| Field             | Type     | Required | Description             |
-| ----------------- | -------- | -------- | ----------------------- |
-| `type`            | string   | Yes      | `"cookie"`              |
-| `loginUrl`        | string   | Yes      | URL to login            |
-| `requiredCookies` | string[] | Yes      | Cookie names to extract |
-| `domain`          | string   | Yes      | Cookie domain           |
-| `instructions`    | string   | No       | User guidance           |
-
-```json
-{
-  "auth": {
-    "type": "cookie",
-    "cookie": {
-      "loginUrl": "https://example.com/login",
-      "requiredCookies": ["session", "authToken"],
-      "domain": ".example.com",
-      "instructions": "Login in browser, then extract cookies from DevTools"
-    }
-  }
-}
-```
-
-## Parameter Schema
-
-Tool `parameters` and `returns` follow [JSON Schema Draft-07](https://json-schema.org/draft-07/json-schema-release-notes.html).
-
-```json
-{
-  "name": "search",
-  "description": "Search for items",
-  "parameters": {
-    "type": "object",
-    "properties": {
-      "query": { "type": "string", "description": "Search query" },
-      "limit": {
-        "type": "integer",
-        "minimum": 1,
-        "maximum": 100,
-        "default": 10
-      }
-    },
-    "required": ["query"]
-  }
-}
-```
-
-## Version Specification
-
-The `version` field follows [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH`
-
-| Change Type            | Version Bump | Examples          |
-| ---------------------- | ------------ | ----------------- |
-| Add new tool           | MINOR        | `1.0.0` → `1.1.0` |
-| Add optional parameter | MINOR        | `1.0.0` → `1.1.0` |
-| Add tool description   | PATCH        | `1.0.0` → `1.0.1` |
-| Remove tool            | MAJOR        | `1.0.0` → `2.0.0` |
-| Add required parameter | MAJOR        | `1.0.0` → `2.0.0` |
-| Rename tool            | MAJOR        | `1.0.0` → `2.0.0` |
-| Change parameter type  | MAJOR        | `1.0.0` → `2.0.0` |
-
-**Rule of thumb**: If existing Agents might break, bump MAJOR. Otherwise, MINOR for new features, PATCH for fixes.
-
-## Examples
-
-### Desktop (macOS)
-
-```json
-{
-  "schemaVersion": "1.0",
-  "version": "1.0.0",
-  "platform": "macos",
-  "app": {
-    "id": "com.example.reminders",
-    "name": {
-      "en": "Reminders",
-      "zh-CN": "提醒事项",
-      "zh-TW": "提醒事項",
-      "de": "Erinnerungen",
-      "fr": "Rappels"
-    },
-    "defaultLang": "en",
-    "description": "Task and reminder management",
-    "aliases": ["reminder", "todo", "待办", "tasks"]
-  },
-  "execution": { "type": "apple-events" },
-  "tools": [ ... ]
-}
-```
-
-### Web with OAuth2
-
-```json
-{
-  "schemaVersion": "1.0",
-  "version": "1.0.0",
-  "platform": "web",
-  "app": {
-    "id": "com.example.api",
-    "name": {
-      "en": "Example API",
-      "zh-CN": "示例API"
-    },
-    "defaultLang": "en",
-    "description": "REST API service",
-    "aliases": ["api", "rest"]
-  },
-  "execution": {
-    "type": "http",
-    "baseUrl": "https://api.example.com/v1",
-    "defaultHeaders": { "Content-Type": "application/json" }
-  },
-  "auth": {
-    "type": "oauth2",
-    "oauth2": {
-      "authorizationEndpoint": "https://example.com/oauth/authorize",
-      "tokenEndpoint": "https://example.com/oauth/token",
-      "scopes": ["read", "write"],
-      "pkce": { "method": "S256" }
-    }
-  },
-  "tools": [
-    {
-      "name": "search",
-      "execution": { "path": "/search", "method": "POST" },
-      "parameters": { ... }
-    }
-  ]
-}
-```
-
-### Web with API Key
-
-```json
-{
-  "schemaVersion": "1.0",
-  "version": "1.0.0",
-  "platform": "web",
-  "app": {
-    "id": "com.yuque.api",
-    "name": {
-      "en": "Yuque",
-      "zh-CN": "语雀"
-    },
-    "defaultLang": "en",
-    "description": "Knowledge management platform",
-    "aliases": ["语雀", "yuque", "knowledge", "doc"]
-  },
-  "execution": {
-    "type": "http",
-    "baseUrl": "https://www.yuque.com/api/v2",
-    "defaultHeaders": { "Content-Type": "application/json" }
-  },
-  "auth": {
-    "type": "apiKey",
-    "apiKey": {
-      "location": "header",
-      "name": "X-Auth-Token",
-      "obtainUrl": "https://www.yuque.com/settings/tokens",
-      "instructions": "Open Settings > Tokens, create a token, copy it immediately, and paste it into the gateway prompt."
-    }
-  },
-  "tools": [ ... ]
-}
-```
-
-### Web with App Credential
-
-```json
-{
-  "schemaVersion": "1.0",
-  "version": "1.0.0",
-  "platform": "web",
-  "app": {
-    "id": "com.feishu.api",
-    "name": {
-      "en": "Feishu",
-      "zh-CN": "飞书"
-    },
-    "defaultLang": "en",
-    "description": "Enterprise collaboration platform",
-    "aliases": ["飞书", "feishu", "lark"]
-  },
-  "execution": {
-    "type": "http",
-    "baseUrl": "https://open.feishu.cn/open-apis",
-    "defaultHeaders": { "Content-Type": "application/json" }
-  },
-  "auth": {
-    "type": "appCredential",
-    "appCredential": {
-      "tokenEndpoint": "https://open.feishu.cn/open-apis/auth/v3/tenantAccessToken/internal",
-      "tokenType": "tenantAccessToken",
-      "expiresIn": 7200,
-      "instructions": "Open Feishu Open Platform, copy the App ID and App Secret from your app settings, then paste them into the gateway prompt."
-    }
-  },
-  "tools": [ ... ]
 }
 ```
 
 ---
 
-[Back to Spec Index](./README.md)
+## Consent
+
+```json
+{
+  "capabilities": [
+    {
+      "id": "fs-write",
+      "name": "Write to filesystem",
+      "description": "Creates or overwrites files on disk.",
+      "operations": ["write", "edit"]
+    }
+  ]
+}
+```
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `capabilities` | Capability[] | ✅ (if consent section present) | Capabilities that require user consent. |
+
+### Capability
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `id` | string | ✅ | Unique identifier for this capability. |
+| `name` | string | ✅ | Human-readable name. |
+| `description` | string | ✅ | What this capability allows. |
+| `operations` | string[] | ❌ | Specific operations that require consent (all operations if empty). |
+
+---
+
+## Examples
+
+### Minimal manifest
+
+```json
+{
+  "aai": "0.3",
+  "app": {
+    "name": { "en": "Hello World" }
+  },
+  "exposure": {
+    "mode": "summary",
+    "summary": "Prints hello world messages."
+  },
+  "access": {
+    "protocol": "cli",
+    "config": { "command": "echo", "args": ["Hello, World!"] }
+  }
+}
+```
+
+### Full manifest
+
+```json
+{
+  "aai": "0.3",
+  "app": {
+    "name": { "en": "Filesystem", "zh": "文件系统" },
+    "description": "Read, write, and navigate the local filesystem."
+  },
+  "exposure": {
+    "mode": "keywords",
+    "keywords": ["filesystem", "file", "read", "write", "edit", "folder", "directory"]
+  },
+  "access": {
+    "protocol": "mcp",
+    "config": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/repo"]
+    }
+  },
+  "consent": {
+    "capabilities": [
+      {
+        "id": "fs-write",
+        "name": "Write to filesystem",
+        "description": "Creates or overwrites files on disk.",
+        "operations": ["write", "edit"]
+      }
+    ]
+  }
+}
+```
+
+---
+
+## Discovery Flow
+
+```
+1. Gateway starts
+2. Scan local config directories for aai.json files
+3. Register each app in the local registry
+4. For each app:
+   a. Read aai.json
+   b. Validate required fields
+   c. Generate app guide (operation details via downstream protocol)
+   d. Register app under localId
+5. Expose apps via MCP ListTools (app:* tools)
+6. On app:* call → return app guide
+7. On aai:exec → call downstream tool, return result
+```
+
+---
+
+## Versioning
+
+| Version | Date | Changes |
+|---|---|---|
+| 0.1 | 2025-12-19 | Initial draft. |
+| 0.2 | 2026-01-15 | Added CLI and skill protocols. |
+| 0.3 | 2026-03-20 | App-level exposure model with summary/keywords modes. |
+
+---
+
+## Implementations
+
+- [aai-gateway](https://github.com/example/aai-gateway) — Reference gateway implementation

@@ -1,246 +1,206 @@
-# AAI Gateway
+# Gateway
 
-The AAI Gateway is a **stdio MCP server** that bridges LLM agents and AAI-compatible apps. It uses a **guide-based discovery model** to minimize context while enabling progressive app interaction.
+**Spec version:** 0.3.0
 
-**Official Implementation**: [github.com/gybob/aai-gateway](https://github.com/gybob/aai-gateway)
-
-## Deployment
-
-Gateway runs as a stdio process managed by the agent client (e.g. Claude Desktop, Cursor, Windsurf). No daemon or background service is required.
-
-**MCP Client configuration**:
-
-```json
-{
-  "mcpServers": {
-    "aai-gateway": {
-      "command": "npx",
-      "args": ["aai-gateway"]
-    }
-  }
-}
-```
-
-**Development mode** (scans Xcode build directories):
-
-```json
-{
-  "mcpServers": {
-    "aai-gateway": {
-      "command": "npx",
-      "args": ["aai-gateway", "--dev"]
-    }
-  }
-}
-```
-
-Gateway starts when the agent client launches and stops when it exits.
-
-## Startup Behavior
-
-On startup, Gateway:
-
-1. Scans for desktop app descriptors:
-   ```bash
-   find /Applications ~/Applications -maxdepth 4 \
-     -path "*/Contents/Resources/aai.json" 2>/dev/null
-   ```
-2. Loads and validates each found `aai.json`
-3. Loads consent records from OS keychain
-4. Becomes ready to serve MCP requests
-
-Startup scan typically completes in under one second.
-
-> `stdio` is part of the AAI execution model, but `aai-gateway` may choose to implement it incrementally. The protocol does not require all bindings to ship at once.
-
-## MCP Interface
-
-Gateway exposes **tools only** (no resources). This simplifies the agent workflow and ensures all capabilities are discoverable via `tools/list`.
-
-### `tools/list`
-
-Returns all discoverable apps plus universal tools:
-
-```json
-{
-  "tools": [
-    // Desktop apps (one entry per app)
-    {
-      "name": "app:com.apple.reminders",
-      "description": "【Reminders|提醒事项】macOS reminders. Aliases: todo, 待办. Call to get guide.",
-      "inputSchema": { "type": "object", "properties": {} }
-    },
-
-    // Web discovery tool
-    {
-      "name": "web:discover",
-      "description": "Discover web app guide. Use when user mentions a web service not in list.",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "url": {
-            "type": "string",
-            "description": "Web app URL, domain, or name"
-          }
-        },
-        "required": ["url"]
-      }
-    },
-
-    // Universal execution tool
-    {
-      "name": "aai:exec",
-      "description": "Execute app operation. Use after reading operation guide.",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "app": { "type": "string", "description": "App ID or URL" },
-          "tool": { "type": "string", "description": "Operation name" },
-          "args": { "type": "object", "description": "Operation parameters" }
-        },
-        "required": ["app", "tool"]
-      }
-    }
-  ]
-}
-```
-
-**Context Efficiency**: `O(apps + 2)` instead of `O(apps × tools)`.
-
-### `tools/call`
-
-#### App Guide Request
-
-```json
-{
-  "name": "app:com.apple.reminders",
-  "arguments": {}
-}
-```
-
-Returns operation guide with available tools, parameters, and usage examples.
-
-#### Web App Discovery
-
-```json
-{
-  "name": "web:discover",
-  "arguments": { "url": "notion.com" }
-}
-```
-
-Fetches `.well-known/aai.json`, generates guide, returns to agent.
-
-#### Tool Execution
-
-```json
-{
-  "name": "aai:exec",
-  "arguments": {
-    "app": "com.apple.reminders",
-    "tool": "create_reminder",
-    "args": {
-      "title": "Submit report",
-      "due": "2024-12-31 15:00"
-    }
-  }
-}
-```
-
-Execution order:
-
-1. Resolve app descriptor (from registry or web fetch)
-2. Check consent (see [Security Model](./security.md))
-3. If desktop: execute via native IPC
-4. If web: execute via HTTP with OAuth token
-5. Return result to agent
-
-## Authorization Flow
-
-### Desktop Apps (OS Consent)
-
-First execution triggers native consent dialog:
-
-```
-┌─────────────────────────────────────────┐
-│ ⚠️ Agent authorization request         │
-│                                         │
-│ Caller: Claude Desktop                  │
-│                                         │
-│ App: Reminders                          │
-│ Tool: create_reminder                   │
-│ Description: Create a reminder item     │
-│                                         │
-│ [Deny] [Authorize This Tool] [Authorize All Tools] │
-└─────────────────────────────────────────┘
-```
-
-User clicks once to authorize. Decision is remembered.
-
-### Web Apps (OAuth)
-
-First execution triggers browser-based OAuth:
-
-1. Gateway opens browser automatically
-2. User completes authorization on website
-3. Browser redirects to local callback
-4. Gateway exchanges tokens automatically
-5. Tool executes
-
-User experience: just complete website login/authorization.
-
-## Local Storage
-
-All Gateway state is stored in user-space. No system-wide files are written.
-
-| Data                 | Location                               | Format              |
-| -------------------- | -------------------------------------- | ------------------- |
-| Web descriptor cache | `~/.cache/aai-gateway/<host>/aai.json` | JSON file + `.meta` |
-| Consent decisions    | OS Keychain                            | Encrypted           |
-| OAuth tokens         | OS Keychain                            | Encrypted           |
-
-### Cache Metadata Format
-
-```json
-{
-  "fetched_at": "2026-02-24T10:00:00Z",
-  "ttl_seconds": 86400,
-  "source_url": "https://notion.so/.well-known/aai.json"
-}
-```
-
-## CLI Commands
-
-Gateway supports minimal CLI for configuration:
-
-```bash
-# Start MCP server (default)
-npx aai-gateway
-
-# Development mode (scan Xcode build directories)
-npx aai-gateway --dev
-
-# Debug: list discovered apps
-npx aai-gateway --scan
-
-# Show version
-npx aai-gateway --version
-```
-
-All operations are performed via MCP tools, not CLI commands.
-
-## Error Handling
-
-| Scenario                              | Gateway Behavior                   |
-| ------------------------------------- | ---------------------------------- |
-| `aai.json` not found at `.well-known` | Return `UNKNOWN_APP` error         |
-| `aai.json` fails schema validation    | Return `INVALID_REQUEST` error     |
-| App not running (desktop)             | Return `SERVICE_UNAVAILABLE`       |
-| OAuth token expired                   | Return `AUTH_REQUIRED`             |
-| Network timeout                       | Return cached version if available |
-
-See [Error Codes](./error-codes.md) for full reference.
+The AAI Gateway is an MCP server that acts as a unified entry point for multiple capability backends. It never exposes raw tool definitions — only **app-level interfaces** with user-controlled exposure.
 
 ---
 
-[Back to Spec Index](./README.md)
+## Gateway Role
+
+```
+AI Client (Claude, GPT, etc.)
+        │
+        │ MCP
+        ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    AAI Gateway                               │
+│                                                              │
+│  Input:  MCP ListTools / CallTool requests                  │
+│  Output: App guides, operation results                       │
+│                                                              │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │              Tool Registry                            │   │
+│  │  app:filesystem  →  AppGuide(operations: [...])      │   │
+│  │  app:github      →  AppGuide(operations: [...])      │   │
+│  │  aai:exec        →  Execute operations                │   │
+│  │  remote:discover →  Fetch remote aai.json            │   │
+│  │  mcp:import      →  Import MCP server                │   │
+│  │  mcp:refresh     →  Refresh imported app              │   │
+│  │  skill:import    →  Import skill                     │   │
+│  │  import:config   →  Update exposure                  │   │
+│  └──────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+        │
+        ▼
+┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+│  MCP Servers    │  │  ACP Agents     │  │  CLI Tools      │
+│  (stdio/HTTP)   │  │  (subprocess)    │  │  (spawn)        │
+└─────────────────┘  └─────────────────┘  └─────────────────┘
+```
+
+---
+
+## Tool Interface
+
+### App Tools (`app:*`)
+
+One tool per discovered app. Each tool returns an **AppGuide** when called.
+
+**Input:** None (or optional operation name for detailed guide)
+
+**Output:** AppGuide
+
+```typescript
+interface AppGuide {
+  localId: string;              // "filesystem"
+  name: Record<string, string>; // { en: "Filesystem", zh: "文件系统" }
+  description: string;          // From aai.json
+  exposure: Exposure;           // Current exposure config
+  operations: Operation[];      // Transformed from downstream tools
+  source: 'local' | 'remote' | 'import';
+}
+
+interface Operation {
+  name: string;   // "read"
+  summary: string; // "Read a file from the filesystem"
+  input: string;  // "{ path: string }"
+  output: string; // "file contents as string"
+}
+```
+
+### Meta Tools
+
+| Tool | Input | Output |
+|---|---|---|
+| `aai:exec` | `{ appId, operation, args }` | Operation result |
+| `remote:discover` | `{ url }` | Remote AppGuide preview |
+| `mcp:import` | `{ command, args?, env? }` or `{ url }` | New app registered |
+| `mcp:refresh` | `{ appId }` | Refreshed AppGuide |
+| `skill:import` | `{ path }` or `{ url }` | New app registered |
+| `import:config` | `{ appId, updates }` | Updated exposure |
+
+---
+
+## Request Routing
+
+```
+CallTool(name, args)
+  │
+  ├─ name.startsWith("app:")
+  │    └─→ Return AppGuide (operations list)
+  │
+  ├─ name === "aai:exec"
+  │    └─→ Lookup operation → Check consent → Route to executor
+  │
+  ├─ name === "remote:discover"
+  │    └─→ Fetch aai.json from URL → Return preview
+  │
+  ├─ name === "mcp:import"
+  │    └─→ Spawn/connect MCP server → Register app
+  │
+  ├─ name === "mcp:refresh"
+  │    └─→ Reconnect MCP server → Regenerate guide
+  │
+  ├─ name === "skill:import"
+  │    └─→ Load skill → Register as app
+  │
+  └─ name === "import:config"
+       └─→ Update exposure in registry
+```
+
+---
+
+## Consent Enforcement
+
+The gateway enforces consent before routing to executors:
+
+```typescript
+async function routeWithConsent(appId: string, operation: string, args: unknown) {
+  const app = registry.get(appId);
+  const capability = findRequiredCapability(app.descriptor.consent, operation);
+
+  if (capability && !consentManager.isGranted(appId, capability.id)) {
+    throw new AaiError('E_CONSENT_REQUIRED', `Operation '${operation}' requires consent.`, {
+      appId,
+      operation,
+      capabilityId: capability.id
+    });
+  }
+
+  return executor.execute(app, operation, args);
+}
+```
+
+---
+
+## Configuration
+
+```json
+{
+  "gateway": {
+    "appDirs": ["./apps", "~/.local/share/aai/apps"],
+    "remoteHosts": ["https://aai.example.com"],
+    "defaultExposure": "summary",
+    "consentStore": "~/.config/aai/consent.json"
+  }
+}
+```
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `appDirs` | string[] | `[]` | Directories to scan for local `aai.json` files |
+| `remoteHosts` | string[] | `[]` | Hosts to fetch remote `aai.json` from |
+| `defaultExposure` | `"summary"` \| `"keywords"` | `"summary"` | Default exposure mode for discovered apps |
+| `consentStore` | string | `~/.config/aai/consent.json` | Path to persistent consent storage |
+
+---
+
+## Startup Sequence
+
+```
+1. Load config (from file or environment)
+2. Init registry (empty)
+3. Init consent manager (load from consentStore)
+4. Local scan → parse aai.json → register apps
+5. Remote scan → fetch aai.json → register apps
+6. Register meta tools (aai:exec, remote:discover, etc.)
+7. Start MCP server (stdio or HTTP)
+8. Ready for requests
+```
+
+---
+
+## Transport Modes
+
+### Stdio (default)
+
+For local CLI tools and subprocess-based MCP servers:
+
+```typescript
+{
+  transport: "stdio",
+  // Gateway stdin/stdout used for MCP protocol
+}
+```
+
+### Streamable HTTP
+
+For remote MCP servers:
+
+```typescript
+{
+  transport: "streamable-http",
+  port: 3100,
+  // Gateway listens on HTTP for MCP requests
+}
+```
+
+---
+
+## Version History
+
+| Version | Date | Changes |
+|---|---|---|
+| 0.1 | 2025-12-19 | Initial gateway spec. |
+| 0.3 | 2026-03-20 | App-level tools, meta tools, consent enforcement. |

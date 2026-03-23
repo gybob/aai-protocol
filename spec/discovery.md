@@ -1,205 +1,212 @@
 # Discovery
 
-## Overview
+**Spec version:** 0.3.0
 
-AAI Gateway uses a **guide-based discovery model** that minimizes context explosion while enabling progressive app discovery. Instead of exposing all tools upfront, Gateway provides app entries that return operation guides on demand.
+Discovery is the process by which the gateway finds and registers apps. AAI supports three discovery methods:
 
-## Desktop App Discovery
+1. **Local scan** — scanning configured directories for `aai.json` files
+2. **Remote scan** — fetching `/.well-known/aai.json` from specified hosts
+3. **Import tools** — user-initiated import of MCP servers, skills, or remote apps
 
-### Descriptor Location
+---
 
-AAI-compatible macOS apps bundle their descriptor inside the app itself:
+## Discovery Methods
 
-```
-/Applications/YourApp.app/Contents/Resources/aai.json
-~/Applications/YourApp.app/Contents/Resources/aai.json
-```
+### Local Scan
 
-### Scanning
-
-Gateway scans for `aai.json` files in all installed app bundles on startup:
-
-```bash
-find /Applications ~/Applications -maxdepth 4 \
-  -path "*/Contents/Resources/aai.json" 2>/dev/null
-```
-
-Gateway rebuilds the app list each startup. No persistent registry is needed — the filesystem is the source of truth.
-
-## Web App Discovery
-
-### Descriptor Location
-
-Web apps publish their descriptor at a well-known URL:
+The gateway scans configured local directories at startup:
 
 ```
-https://yourapp.com/.well-known/aai.json
+Config: { "appDirs": ["/path/to/apps", "~/.local/share/aai/apps"] }
+
+Scan each directory:
+  /path/to/apps/
+  ├── filesystem/aai.json
+  ├── github/aai.json
+  └── my-custom-app/aai.json
 ```
 
-No registration with any central service is required.
+For each `aai.json` found:
+1. Parse and validate the manifest
+2. Derive `localId` from the directory name or `app.name`
+3. Generate exposure based on user preference (summary or keywords)
+4. Register in the gateway registry
 
-### On-Demand Fetch
+### Remote Scan
 
-Web app descriptors are fetched lazily via the `web:discover` tool when the agent needs them.
+The gateway fetches `aai.json` from well-known URLs:
 
-## MCP Interface
+```
+Config: { "remoteHosts": ["https://aai.example.com"] }
 
-### tools/list
+For each host:
+  GET https://aai.example.com/.well-known/aai.json
+  → Returns manifest or redirect
+```
 
-Returns all discovered desktop apps plus universal tools for web discovery and execution:
+Remote apps are imported as-is (exposure mode set to whatever the remote manifest declares).
 
-```json
-{
-  "tools": [
-    {
-      "name": "app:com.apple.reminders",
-      "description": "【Reminders|提醒事项|Rappels】macOS reminders app. Aliases: reminder, todo, 待办. Call to get guide.",
-      "inputSchema": { "type": "object", "properties": {} }
-    },
-    {
-      "name": "app:com.apple.mail",
-      "description": "【Mail|邮件】macOS email client. Aliases: mail, email. Call to get guide.",
-      "inputSchema": { "type": "object", "properties": {} }
-    },
-    {
-      "name": "web:discover",
-      "description": "Discover web app guide. Use when user mentions a web service. Supports URL/domain/name.",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "url": {
-            "type": "string",
-            "description": "Web app URL, domain, or name"
-          }
-        },
-        "required": ["url"]
-      }
-    },
-    {
-      "name": "aai:exec",
-      "description": "Execute app operation. Parameters: app, tool, args. Use after reading guide.",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "app": { "type": "string", "description": "App ID or URL" },
-          "tool": { "type": "string", "description": "Operation name" },
-          "args": { "type": "object", "description": "Parameters" }
-        },
-        "required": ["app", "tool"]
-      }
-    }
-  ]
+### Import Tools
+
+Users can manually import apps via gateway tools:
+
+| Tool | Description |
+|---|---|
+| `mcp:import` | Import a local or remote MCP server |
+| `skill:import` | Import a local or remote skill |
+| `remote:discover` | Fetch and preview a remote `aai.json` |
+| `import:config` | Update exposure metadata for an imported app |
+
+---
+
+## The Registry
+
+All discovered apps are stored in the **gateway registry** as `RuntimeAppRecord`:
+
+```typescript
+interface RuntimeAppRecord {
+  localId: string;           // Unique per gateway, e.g., "filesystem"
+  descriptor: AaiJson;      // Parsed aai.json
+  guide?: AppGuide;          // Generated on-demand
+  exposure: Exposure;        // Current exposure (summary or keywords)
+  importedAt: number;       // Timestamp
+  lastAccessed?: number;     // Timestamp
+  source: 'local' | 'remote' | 'import';
 }
 ```
 
-**Context Efficiency**: Only `O(apps + 2)` entries instead of `O(apps × tools)`.
+---
 
-### Description Format
+## localId Derivation
 
-App descriptions follow this pattern for optimal agent matching:
+`localId` is derived deterministically from the app name:
+
+```typescript
+function deriveLocalId(name: Record<string, string>): string {
+  const enName = name.en || Object.values(name)[0];
+  return enName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+// Examples:
+// { en: "Filesystem" }        → "filesystem"
+// { en: "GitHub CLI" }        → "github-cli"
+// { en: "我的应用" }           → "我的应用"
+```
+
+---
+
+## App Guide Generation
+
+The **AppGuide** is generated on-demand when an app is first called:
+
+```typescript
+interface AppGuide {
+  localId: string;
+  name: Record<string, string>;
+  description: string;
+  exposure: Exposure;
+  operations: Operation[];
+  source: 'local' | 'remote' | 'import';
+}
+
+interface Operation {
+  name: string;         // e.g., "read", "write"
+  summary: string;      // One-liner: "Read a file from the filesystem."
+  input: string;       // Input description
+  output: string;       // Output description
+}
+```
+
+**Key design**: The guide is a *view* of the app's capabilities, not the raw tool schemas from downstream. The gateway transforms downstream tool definitions into user-friendly operation guides.
+
+---
+
+## Exposure Modes
+
+### Summary Mode
+
+```json
+{
+  "mode": "summary",
+  "summary": "Read, write, and navigate the local filesystem. Use for checking configs, reading project files, or writing logs."
+}
+```
+
+The AI reads this description and decides when to use the app. No explicit keyword matching needed.
+
+### Keywords Mode
+
+```json
+{
+  "mode": "keywords",
+  "keywords": ["filesystem", "file", "read", "write", "edit", "folder", "directory"]
+}
+```
+
+The AI matches user input against these keywords to decide when to trigger the app.
+
+### Switching Modes
+
+Users can switch modes via `import:config`:
 
 ```
-【{multi-language-names}】{description}. Aliases: {alias-list}. Call to get guide.
+import:config({ appId: "filesystem", updates: { exposure: { mode: "keywords", keywords: [...] } } })
 ```
 
-- **Multi-language names**: From `app.name` field (pipe-separated)
-- **Description**: From `app.description` field
-- **Aliases**: From `app.aliases` field (comma-separated)
-
-### App Matching
-
-Agents match user intent to apps using:
-
-1. **Multi-language names**: User says "提醒事项" → matches `app:com.apple.reminders`
-2. **Aliases**: User says "todo" → matches via aliases
-3. **Fuzzy matching**: Agent's LLM capabilities handle variations
+---
 
 ## Discovery Flow
 
-### Desktop App Flow
-
 ```
-User: "帮我在提醒事项里创建提醒"
+┌─────────────────────────────────────────────────────────────┐
+│                    Gateway Startup                           │
+├─────────────────────────────────────────────────────────────┤
+│ 1. Load config                                               │
+│    └── appDirs, remoteHosts, preferences                    │
+│                                                              │
+│ 2. Local scan                                               │
+│    └── Find aai.json in each appDir                         │
+│    └── Validate manifest                                    │
+│    └── Derive localId                                        │
+│    └── Store in registry (exposure: default mode)           │
+│                                                              │
+│ 3. Remote scan                                               │
+│    └── GET /.well-known/aai.json from each host             │
+│    └── Validate manifest                                     │
+│    └── Store in registry (exposure: from manifest)          │
+│                                                              │
+│ 4. Register meta tools                                      │
+│    └── aai:exec, remote:discover, mcp:import, etc.          │
+└─────────────────────────────────────────────────────────────┘
 
-1. tools/list → Agent sees "【Reminders|提醒事项|Rappels】"
-2. Match "提醒事项" → app:com.apple.reminders
-3. tools/call("app:com.apple.reminders", {}) → Returns operation guide
-4. tools/call("aai:exec", {app, tool, args}) → Executes operation
+┌─────────────────────────────────────────────────────────────┐
+│                   Runtime (per request)                       │
+├─────────────────────────────────────────────────────────────┤
+│ ListTools:                                                   │
+│   → Return all registered apps (app:*)                      │
+│   → Only expose summary or keywords, not raw tools           │
+│                                                              │
+│ CallTool(app:*):                                             │
+│   → Lookup app in registry                                   │
+│   → Generate guide if not cached                            │
+│   → Return app guide with operations list                    │
+│                                                              │
+│ CallTool(aai:exec):                                          │
+│   → Lookup operation in guide                                │
+│   → Check consent if required                               │
+│   → Route to appropriate executor                            │
+│   → Return result                                            │
+└─────────────────────────────────────────────────────────────┘
 ```
-
-### Web App Flow
-
-```
-User: "帮我在 Notion 里创建页面"
-
-1. tools/list → No matching app found
-2. tools/call("web:discover", {url: "notion.com"}) → Returns Notion guide
-3. tools/call("aai:exec", {app: "https://api.notion.com", tool, args}) → Executes
-```
-
-## Operation Guide Format
-
-When calling `app:*` or `web:discover`, Gateway returns a guide:
-
-```markdown
-# Reminders Operation Guide
-
-## App Info
-
-- ID: com.apple.reminders
-- Platform: macos
-
-## Authentication
-
-Uses OS-level consent (TCC). First execution shows native dialog.
-
-## Available Operations
-
-### create_reminder
-
-Create a new reminder
-
-**Parameters**:
-
-- title (string, required): Reminder title
-- due (string, optional): Due datetime YYYY-MM-DD HH:MM
-- list (string, optional): List name
-
-**Example**:
-aai:exec({
-app: "com.apple.reminders",
-tool: "create_reminder",
-args: { title: "Submit report", due: "2024-12-31 15:00" }
-})
 
 ---
 
-Use aai:exec tool to execute operations.
-```
+## Version History
 
-## Name Resolution (Web Apps)
-
-When agent calls `web:discover`, Gateway:
-
-1. Normalizes URL input (adds `https://`, handles domain-only)
-2. Fetches `.well-known/aai.json`
-3. Caches descriptor (TTL: 24 hours)
-4. Generates and returns operation guide
-
-**URL Input Formats**:
-
-- Full URL: `https://api.example.com`
-- Domain: `api.example.com` → `https://api.example.com`
-- Service name: Agent infers URL from knowledge
-
-## Local Storage
-
-| Data                 | Location                               | Format         |
-| -------------------- | -------------------------------------- | -------------- |
-| Web descriptor cache | `~/.cache/aai-gateway/<host>/aai.json` | JSON + `.meta` |
-| Consent decisions    | OS Keychain                            | Encrypted      |
-| OAuth tokens         | OS Keychain                            | Encrypted      |
-
----
-
-[Back to Spec Index](./README.md)
+| Version | Date | Changes |
+|---|---|---|
+| 0.1 | 2025-12-19 | Initial discovery draft. |
+| 0.3 | 2026-03-20 | App-level discovery with exposure modes. |

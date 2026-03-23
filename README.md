@@ -1,117 +1,174 @@
-# AAI (Agent App Interface)
+# AAI Protocol
 
-<p align="center">
-  <img src="./images/aai-protocol-diagram.png" alt="AAI Protocol" width="600" />
-</p>
+> **App-level MCP gateway with progressive disclosure.**
 
-<p align="center">
-  <strong>An open protocol that makes any application accessible to AI Agents.</strong>
-</p>
+[![Spec Version](https://img.shields.io/badge/spec-0.3.0-blue.svg)](spec/aai-json.md)
+[![Status](https://img.shields.io/badge/status-draft-orange.svg)]()
 
----
+**AAI (Agent App Interface) Protocol** is a lightweight specification for packaging, discovering, and executing capability-backed apps behind a single MCP gateway.
 
-## Background: The Agent-Software Paradox
-
-Early 2026 revealed a paradox: AI-driven market panic ($285B wiped in a day) vs. NVIDIA CEO Jensen Huang's rebuttal—"AI will use tools, not replace them."
-
-The truth lies in between: **AI needs software tools, but only those it can access.** Applications invisible to Agents face obsolescence—not because AI replaces software, but because Agents will choose accessible alternatives over undiscoverable ones.
-
-### The Future of Applications
-
-Tomorrow's applications will serve two audiences:
-
-| Interface | Audience | Purpose |
-|-----------|----------|---------|
-| **GUI** | Humans | Visual interaction, discovery, enjoyment |
-| **AAI** | Agents | Programmatic access, automation, orchestration |
-
-Both interfaces access the same core logic. The GUI remains for humans who prefer visual interaction or need to explore. AAI enables Agents to operate apps on behalf of users—reliably, quickly, and at scale.
-
-This is not about replacing apps. It's about making every app accessible to the AI assistants that users increasingly rely on.
+Instead of connecting one MCP server per app, AAI lets you expose **multiple apps through one MCP connection** — with full control over what the AI client sees upfront.
 
 ---
 
 ## The Problem
 
-AI Agents (Claude, GPT, OpenClaw, etc.) can already operate well-known applications like Apple Mail or Microsoft Outlook -- because LLMs have seen their AppleScript/COM interfaces in training data.
+Traditional MCP setups require one connection per capability provider:
 
-**But what about your app?**
+```
+AI Client → MCP → filesystem server
+AI Client → MCP → github server
+AI Client → MCP → slack server
+...
+```
 
-- **Desktop apps**: Even if your app supports AppleScript, COM, or DBus, LLMs have never seen your documentation. They don't know your command names, your parameters, or your data model. **Your app is invisible to Agents.**
-- **Web Apps**: Your service has a REST API, but Agents don't know your endpoints, auth flow, or request format. Without a standardized descriptor, **your API is just another undiscovered URL.**
-- **Apps with no automation at all**: Completely unreachable.
+Every tool from every server is dumped into the context. This is noisy, expensive, and reveals capabilities before you need them.
 
 ## The Solution
 
-AAI gives every application -- desktop or Web App -- a **standardized, machine-readable descriptor** (`aai.json`) that tells Agents exactly what your app can do and how to call it.
+AAI Gateway sits in front of everything and applies **progressive disclosure**:
 
 ```
-Without AAI:
-  Agent knows Apple Mail        ✅  (in LLM training data)
-  Agent knows Microsoft Word    ✅  (in LLM training data)
-  Agent knows your desktop app  ❌  (never seen it before)
-  Agent knows your Web App API   ❌  (never seen it before)
-
-With AAI:
-  Agent discovers your app via aai.json  ✅
-  Agent reads tool definitions           ✅
-  Agent calls it directly (native binding, stdio, or API) ✅
+AI Client → MCP → AAI Gateway → filesystem MCP server
+                         → github MCP server
+                         → slack MCP server
+                         → CLI tools
+                         → ACP agents
+                         → Remote apps (via URL)
 ```
 
-**One `aai.json` file turns your app from invisible to fully Agent-accessible.**
+Only app-level interfaces are exposed upfront. Detailed tool execution happens on demand.
 
-## Who Benefits
+---
 
-### App Developers -- Make Your App Agent-Ready
+## Key Features
 
-| Your App's Situation | Without AAI | With AAI |
-|----------------------|-------------|----------|
-| Well-known desktop app (Mail, Outlook) | Agents already know it | Agents discover it formally |
-| Web App with REST API (Notion, your Web App) | **Agent doesn't know your endpoints** | Agent discovers API tools via aai.json |
-| No automation / no API at all | **Completely unreachable** | Add interface + `aai.json`, Agent-ready |
+### Progressive Disclosure — App Level, Not Tool Level
 
-The key insight: **Having an API or automation support is not enough.** Without a standardized descriptor, Agents have no way to discover your app's capabilities. AAI is the bridge between "having an interface" and "being Agent-accessible."
+Tools are grouped into **apps**. Only the app interface is visible to the AI client — never raw tool schemas.
 
-### Agent Developers -- Zero Integration Work
+Users choose how each app is exposed:
 
-Connect to any AAI-enabled app through standard MCP. No per-app custom code, no scraping documentation, no hardcoding commands. Works for both desktop apps and Web Apps.
+| Mode | Description |
+|---|---|
+| `summary` | Natural language description; AI infers when to use |
+| `keywords` | Compact keyword set; explicit triggering with minimal context |
 
-### Users -- Agent-Driven Productivity
+Both modes expose the same capability. Only the trigger mechanism differs.
 
-With AAI, users delegate daily work to AI Agents instead of operating applications manually. Compared to traditional UI automation:
+### One Connection, Many Apps
 
-- **Higher reliability**: Structured IPC/API calls are deterministic, unlike screenshot-based automation
-- **Faster execution**: Direct communication bypasses visual recognition and mouse simulation overhead
-- **Seamless integration**: Agents orchestrate multiple apps naturally, creating end-to-end workflows
+One MCP connection to the gateway — it routes to any backend: MCP servers, ACP agents, CLI tools, skills, or remote apps.
+
+### Human-Readable Discovery
+
+All manifests are plain JSON with localized names and descriptions. No binary blobs, no proprietary formats.
+
+### Consent-First
+
+Sensitive operations (e.g., filesystem write) can declare consent requirements. The gateway enforces them before execution.
+
+---
 
 ## How It Works
 
-1. App provides `aai.json` describing its tools:
-   - **Desktop apps** → bundled inside the app at `YourApp.app/Contents/Resources/aai.json`
-   - **Web Apps** → hosted at `https://yourdomain.com/.well-known/aai.json`
-2. Agent connects to AAI Gateway via standard MCP (stdio)
-3. Gateway scans `/Applications/` on startup and builds a list of AAI-compatible desktop apps
-4. Agent discovers available apps and tools on demand; web app descriptors are fetched automatically when needed
-5. Gateway executes the call:
-   - **Desktop apps** → JSON over native bindings (Apple Events / DBus / COM), OS-managed authorization
-   - **Local adapters** → JSON over stdio
-   - **Web Apps** → JSON over HTTPS, Gateway-managed OAuth 2.1 authorization
+### 1. Apps Declare Capabilities in `aai.json`
 
-Both humans (via GUI) and Agents (via AAI) access the same core application logic. Neither interferes with the other.
+```json
+{
+  "aai": "0.3",
+  "app": {
+    "name": { "en": "Filesystem", "zh": "文件系统" }
+  },
+  "exposure": {
+    "mode": "summary",
+    "summary": "Read, write, and navigate the local filesystem."
+  },
+  "access": {
+    "protocol": "mcp",
+    "config": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/repo"]
+    }
+  }
+}
+```
 
-## Quick Links
+### 2. Gateway Exposes Only Apps
 
-| Resource | Description |
-|----------|-------------|
-| [Protocol Specification](./spec/README.md) | Full technical specification |
-| [aai-protocol.org](https://aai-protocol.org) | Official website |
-| [AAI Gateway](https://github.com/gybob/aai-gateway) | Reference implementation |
+The AI client sees `app:filesystem`, not the 10 underlying MCP tools:
 
-## Contact
+```
+ListTools →
+  app:filesystem  "Read, write, and navigate the local filesystem."
+  app:github      "GitHub CLI for issues, PRs, and repos."
+  aai:exec        "Execute an app operation."
+```
 
-gybeml@gmail.com
+### 3. On Demand, Detailed Guides
 
+When `app:filesystem` is called, the gateway returns the operation guide — a human-friendly list of what this app can do:
+
+```
+app:filesystem →
+  read(path)      → Read a file
+  write(path, content) → Write a file
+  list(dir)       → List directory contents
+```
+
+### 4. Execution via `aai:exec`
+
+The AI calls `aai:exec` with `{ appId: "filesystem", operation: "read", args: { path: "/repo/README.md" } }`.
+
+Gateway checks consent → routes to MCP server → returns result.
+
+---
+
+## Spec Overview
+
+| Document | Description |
+|---|---|
+| [AAI JSON](spec/aai-json.md) | App manifest format (`aai.json` structure) |
+| [Architecture](spec/architecture.md) | Gateway internals and data flow |
+| [Security](spec/security.md) | Authentication and authorization |
+| [MCP Bridge](spec/mcp-bridge.md) | MCP server integration |
+
+---
+
+## Implementations
+
+### Gateway
+
+- **[aai-gateway](https://github.com/example/aai-gateway)** — Reference gateway implementation in TypeScript/Node.js
+
+### Apps
+
+Apps are just directories with an `aai.json` manifest. See [example-apps/](example-apps/) for templates.
+
+---
+
+## Version History
+
+| Version | Date | Summary |
+|---|---|---|
+| 0.1 | 2025-12-19 | Initial draft with MCP-only backend. |
+| 0.2 | 2026-01-15 | Added CLI, skill, and ACP agent protocols. |
+| 0.3 | 2026-03-20 | App-level exposure with summary/keywords modes. |
+
+---
+
+## Motivation
+
+We built AAI because:
+
+1. **Context is expensive.** Every tool definition in the context costs tokens.
+2. **Discovery should be gradual.** Showing every capability upfront is overwhelming.
+3. **Users should be in control.** Different users have different privacy and UX preferences.
+
+AAI is our answer to "how do we expose many capabilities through one MCP connection without blowing up context size?"
+
+---
 
 ## License
 
-Apache 2.0
+MIT
