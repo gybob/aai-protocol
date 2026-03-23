@@ -111,23 +111,21 @@ CallTool(name, args)
 
 ---
 
-## Consent Enforcement (Planned)
+## Consent Enforcement
 
-> **Note:** Consent enforcement is planned for a future spec version.
+> **Note:** Consent is handled by the gateway runtime. No consent declaration in `aai.json` needed — the gateway prompts automatically on first use.
 
-The gateway will enforce consent before routing to executors:
+The gateway enforces consent before routing to executors:
 
 ```typescript
-// Planned future implementation
+// Gateway-side implementation
 async function routeWithConsent(appId: string, operation: string, args: unknown) {
   const app = registry.get(appId);
-  const capability = findRequiredCapability(app.descriptor.consent, operation);
 
-  if (capability && !consentManager.isGranted(appId, capability.id)) {
-    throw new AaiError('E_CONSENT_REQUIRED', `Operation '${operation}' requires consent.`, {
+  if (!consentManager.isGranted(appId)) {
+    throw new AaiError('E_CONSENT_REQUIRED', `App '${appId}' requires consent.`, {
       appId,
-      operation,
-      capabilityId: capability.id
+      operation
     });
   }
 

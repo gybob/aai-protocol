@@ -77,14 +77,14 @@ Scans both local paths and remote URLs for `aai.json` manifests:
 
 ### Consent Manager
 
-Handles user consent for sensitive operations (future extension):
+Handles user consent for sensitive operations:
 
 - Tracks granted/denied permissions per capability
 - Shows consent dialogs when sensitive operations are first called
 - Persists consent decisions in secure storage
 - Supports capability-level and operation-level consent
 
-> **Note:** Consent is planned for a future spec version. The current 0.3 implementation does not include consent enforcement.
+> **Note:** Consent handling is implemented in the gateway runtime. The `aai.json` manifest does not declare consent requirements — the gateway handles consent prompts automatically on first use of an app.
 
 ### MCP Request Handlers
 
@@ -256,16 +256,16 @@ await tools['import:config']({
 
 ---
 
-## Consent Flow (Planned)
+## Consent Flow
 
-> **Note:** Consent enforcement is planned for a future spec version. The flow below describes the intended design.
+> **Note:** Consent is handled by the gateway runtime, not declared in `aai.json`. The gateway prompts the user automatically on first use of a new app.
 
 ```
-1. App registered with consent requirements (operations: ["write", "edit"])
-2. AI calls "aai:exec" with operation "write"
-3. Consent Manager checks if consent already granted
-4. If not → return consent_required error with capability details
-5. User grants consent → Consent Manager stores decision
+1. App registered (no consent config needed in aai.json)
+2. AI calls "aai:exec" with any operation
+3. Gateway checks if this app has been consented
+4. If not → return consent_required error with app details
+5. User grants consent → Gateway stores decision
 6. Retry "aai:exec" → proceeds to executor
 ```
 

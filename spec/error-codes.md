@@ -34,15 +34,12 @@ interface AaiError {
 | `E_CONNECTION_FAILED` | 502 | Cannot connect to remote MCP endpoint. |
 | `E_SUBPROCESS_EXITED` | 500 | Subprocess exited unexpectedly. |
 
-### Consent Errors (`3xxx`) — Planned
-
-> **Note:** Consent errors are planned for a future spec version when consent enforcement is implemented.
+### Consent Errors (`3xxx`)
 
 | Code | HTTP Status | Description |
 |---|---|---|
-| `E_CONSENT_REQUIRED` | 403 | Operation requires user consent. |
-| `E_CONSENT_DENIED` | 403 | User denied consent for this capability. |
-| `E_CAPABILITY_NOT_FOUND` | 404 | Unknown `capabilityId` in consent config. |
+| `E_CONSENT_REQUIRED` | 403 | App requires user consent before use. |
+| `E_CONSENT_DENIED` | 403 | User denied consent for this app. |
 
 ### Execution Errors (`4xxx`)
 
