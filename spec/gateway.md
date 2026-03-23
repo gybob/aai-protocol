@@ -111,11 +111,14 @@ CallTool(name, args)
 
 ---
 
-## Consent Enforcement
+## Consent Enforcement (Planned)
 
-The gateway enforces consent before routing to executors:
+> **Note:** Consent enforcement is planned for a future spec version.
+
+The gateway will enforce consent before routing to executors:
 
 ```typescript
+// Planned future implementation
 async function routeWithConsent(appId: string, operation: string, args: unknown) {
   const app = registry.get(appId);
   const capability = findRequiredCapability(app.descriptor.consent, operation);

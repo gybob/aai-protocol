@@ -77,12 +77,14 @@ Scans both local paths and remote URLs for `aai.json` manifests:
 
 ### Consent Manager
 
-Handles user consent for sensitive operations:
+Handles user consent for sensitive operations (future extension):
 
 - Tracks granted/denied permissions per capability
 - Shows consent dialogs when sensitive operations are first called
 - Persists consent decisions in secure storage
 - Supports capability-level and operation-level consent
+
+> **Note:** Consent is planned for a future spec version. The current 0.3 implementation does not include consent enforcement.
 
 ### MCP Request Handlers
 
@@ -254,7 +256,9 @@ await tools['import:config']({
 
 ---
 
-## Consent Flow
+## Consent Flow (Planned)
+
+> **Note:** Consent enforcement is planned for a future spec version. The flow below describes the intended design.
 
 ```
 1. App registered with consent requirements (operations: ["write", "edit"])

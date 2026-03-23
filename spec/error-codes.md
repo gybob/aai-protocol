@@ -34,7 +34,9 @@ interface AaiError {
 | `E_CONNECTION_FAILED` | 502 | Cannot connect to remote MCP endpoint. |
 | `E_SUBPROCESS_EXITED` | 500 | Subprocess exited unexpectedly. |
 
-### Consent Errors (`3xxx`)
+### Consent Errors (`3xxx`) — Planned
+
+> **Note:** Consent errors are planned for a future spec version when consent enforcement is implemented.
 
 | Code | HTTP Status | Description |
 |---|---|---|

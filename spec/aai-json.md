@@ -15,7 +15,6 @@
 | **Single manifest** | No app registry. No package managers. The manifest is the app. |
 | **Human-readable by design** | `summary` and `keywords` are for AI consumption — but they are plain text, not binary blobs. |
 | **Zero coupling** | The gateway does not install, run, or manage app lifecycle. It only fetches a manifest and executes operations on demand. |
-| **Consent-first** | Sensitive capabilities require user consent before execution. The manifest declares what requires it. |
 | **Progressive disclosure** | Raw tool definitions are never exposed upfront. Only app-level metadata is visible; detailed guides are fetched on demand. |
 
 ---
@@ -63,8 +62,7 @@ Both modes expose the same app interface — only the trigger mechanism differs.
   "aai": "0.3",
   "app": { ... },
   "exposure": { ... },
-  "access": { ... },
-  "consent": { ... }
+  "access": { ... }
 }
 ```
 
@@ -76,7 +74,6 @@ Both modes expose the same app interface — only the trigger mechanism differs.
 | `app` | App | ✅ | App identity and localization. |
 | `exposure` | Exposure | ✅ | What the gateway exposes to AI clients. |
 | `access` | Access | ✅ | How the gateway reaches the app backend. |
-| `consent` | Consent | ❌ | Capabilities requiring user consent before use. |
 
 ---
 
@@ -250,36 +247,6 @@ Or for remote skills:
 
 ---
 
-## Consent
-
-```json
-{
-  "capabilities": [
-    {
-      "id": "fs-write",
-      "name": "Write to filesystem",
-      "description": "Creates or overwrites files on disk.",
-      "operations": ["write", "edit"]
-    }
-  ]
-}
-```
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `capabilities` | Capability[] | ✅ (if consent section present) | Capabilities that require user consent. |
-
-### Capability
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `id` | string | ✅ | Unique identifier for this capability. |
-| `name` | string | ✅ | Human-readable name. |
-| `description` | string | ✅ | What this capability allows. |
-| `operations` | string[] | ❌ | Specific operations that require consent (all operations if empty). |
-
----
-
 ## Examples
 
 ### Minimal manifest
@@ -320,16 +287,6 @@ Or for remote skills:
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-filesystem", "/repo"]
     }
-  },
-  "consent": {
-    "capabilities": [
-      {
-        "id": "fs-write",
-        "name": "Write to filesystem",
-        "description": "Creates or overwrites files on disk.",
-        "operations": ["write", "edit"]
-      }
-    ]
   }
 }
 ```
@@ -354,7 +311,7 @@ Or for remote skills:
 
 ---
 
-## Versioning
+## Version History
 
 | Version | Date | Changes |
 |---|---|---|
