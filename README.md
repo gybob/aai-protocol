@@ -14,4 +14,4 @@ All future development happens there.
 
 ## License
 
-MIT
+Apache 2.0
